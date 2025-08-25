@@ -1,6 +1,8 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
-const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdown, onLogout, user, onNavigate }) => {
+const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdown, onLogout, user }) => {
+  const navigate = useNavigate()
   // Safety check to prevent crashes
   if (!user) {
     console.warn('ProfileDropdown: No user data provided')
@@ -219,7 +221,7 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
           <div className="py-2">
             <button 
               onClick={() => {
-                onNavigate?.('My Profile')
+                navigate('/profile')
                 setShowProfileDropdown(false)
               }}
               className={`w-full px-4 py-3 text-left flex items-center space-x-3 transition-colors duration-200 ${

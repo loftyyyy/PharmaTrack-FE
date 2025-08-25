@@ -1,4 +1,7 @@
-const Sidebar = ({ isDarkMode, activeSection, setActiveSection, sidebarItems }) => {
+import { Link, useLocation } from 'react-router-dom'
+
+const Sidebar = ({ isDarkMode, sidebarItems }) => {
+  const location = useLocation()
   return (
     <div className={`w-64 text-white shadow-lg flex flex-col border-r transition-colors duration-300 ${
       isDarkMode 
@@ -25,17 +28,17 @@ const Sidebar = ({ isDarkMode, activeSection, setActiveSection, sidebarItems }) 
         <ul className="space-y-2">
           {sidebarItems.map((item) => (
             <li key={item.name}>
-              <button
-                onClick={() => setActiveSection(item.name)}
+              <Link
+                to={item.path}
                 className={`w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 group ${
-                  activeSection === item.name
+                  location.pathname === item.path
                     ? 'bg-white/10 text-white shadow-sm'
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <span className="mr-3">{item.icon}</span>
                 <span className="font-medium">{item.name}</span>
-              </button>
+              </Link>
             </li>
           ))}
         </ul>

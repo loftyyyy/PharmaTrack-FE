@@ -1,20 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { API_BASE_URL } from '../utils/config'
-
-// Utility function to decode JWT token (client-side only for display purposes)
-const parseJwt = (token) => {
-  try {
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-    }).join(''))
-    return JSON.parse(jsonPayload)
-  } catch (error) {
-    console.error('Error parsing JWT:', error)
-    return null
-  }
-}
+import { parseJwt } from '../utils/jwt'
 
 const AuthContext = createContext()
 
@@ -33,12 +19,17 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize auth state from localStorage
   useEffect(() => {
-    console.log('Initializing auth from localStorage') // Debug log
+    console.log('🔄 Initializing auth from localStorage') // Debug log
     
     const savedToken = localStorage.getItem('pharma_token')
     const savedUser = localStorage.getItem('pharma_user')
     
-    console.log('Saved data:', { savedToken: !!savedToken, savedUser }) // Debug log
+    console.log('💾 Saved data from localStorage:', { 
+      savedToken: savedToken ? `${savedToken.substring(0, 20)}...` : null, 
+      savedUser,
+      tokenExists: !!savedToken,
+      userExists: !!savedUser
+    })
     
     if (savedToken && savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
       try {
@@ -67,6 +58,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true)
+      console.log('🚀 AuthContext login attempt for:', email)
+      console.log('🌐 API_BASE_URL:', API_BASE_URL)
       
       // API call to Spring Boot backend
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -77,9 +70,36 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ username: email, password }),
       })
 
+      console.log('📡 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Login failed')
+        let errorMessage = 'Login failed'
+        try {
+          const errorData = await response.json()
+          console.log('📄 Error response data:', errorData)
+          
+          // Use the actual error message from the server
+          errorMessage = errorData.message || errorData.error || 'Login failed'
+        } catch {
+          // If we can't parse the error response, use status-based messages
+          if (response.status === 401) {
+            errorMessage = 'Invalid username or password'
+          } else if (response.status === 403) {
+            errorMessage = 'Access denied'
+          } else if (response.status >= 500) {
+            errorMessage = 'SERVER_ERROR: Server is temporarily unavailable. Please try again later.'
+          } else if (response.status === 0) {
+            errorMessage = 'NETWORK_ERROR: Unable to connect to the server. Please check if the backend is running.'
+          } else {
+            errorMessage = `Login failed (${response.status})`
+          }
+        }
+        console.log('❌ Login failed with error:', errorMessage)
+        return { success: false, error: errorMessage }
       }
 
       const data = await response.json()
@@ -208,8 +228,27 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true }
     } catch (error) {
-      console.error('Login error:', error)
-      return { success: false, error: error.message }
+      console.error('💥 Login error caught:', error)
+      console.error('💥 Error type:', error.name)
+      console.error('💥 Error message:', error.message)
+      console.error('💥 Error stack:', error.stack)
+      
+      // Handle different types of errors
+      let errorMessage = error.message || 'An unexpected error occurred'
+      
+      // Network errors (server not running, no internet, etc.)
+      if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
+        errorMessage = 'NETWORK_ERROR: Unable to connect to the server. Please check if the backend server is running and try again.'
+      } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+        errorMessage = 'NETWORK_ERROR: Network error. Please check your connection and try again.'
+      } else if (error.message.includes('CORS')) {
+        errorMessage = 'NETWORK_ERROR: Connection blocked. Please check server configuration.'
+      } else if (error.name === 'TypeError' && error.message.includes('Load failed')) {
+        errorMessage = 'NETWORK_ERROR: Unable to reach the server. Please check if the backend is running.'
+      }
+      
+      console.log('🔴 Returning login error:', errorMessage)
+      return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }
@@ -289,49 +328,41 @@ export const AuthProvider = ({ children }) => {
     // Add base URL if the URL is relative
     const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`
 
-    try {
-      const response = await fetch(fullUrl, {
-        ...options,
-        headers,
-      })
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers,
+    })
 
-      // Handle token expiration
-      if (response.status === 401) {
-        // Token expired or invalid
-        logout()
-        throw new Error('Session expired. Please log in again.')
-      }
-
-      return response
-    } catch (error) {
-      throw error
+    // Handle token expiration
+    if (response.status === 401) {
+      // Token expired or invalid
+      logout()
+      throw new Error('Session expired. Please log in again.')
     }
+
+    return response
   }
 
   // Fetch complete user profile from backend
   const fetchUserProfile = async () => {
     if (!token) return null
     
-    try {
-      const response = await apiRequest(`${API_BASE_URL}/v1/users/me`)
-      if (response.ok) {
-        const userProfile = await response.json()
-        console.log('Fetched user profile:', userProfile)
-        
-        // Update user state with complete profile
-        const completeUserData = {
-          ...user,
-          ...userProfile,
-          role: userProfile.role || user.role // Ensure role is properly set
-        }
-        
-        setUser(completeUserData)
-        localStorage.setItem('pharma_user', JSON.stringify(completeUserData))
-        
-        return completeUserData
+    const response = await apiRequest(`${API_BASE_URL}/v1/users/me`)
+    if (response.ok) {
+      const userProfile = await response.json()
+      console.log('Fetched user profile:', userProfile)
+      
+      // Update user state with complete profile
+      const completeUserData = {
+        ...user,
+        ...userProfile,
+        role: userProfile.role || user.role // Ensure role is properly set
       }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error)
+      
+      setUser(completeUserData)
+      localStorage.setItem('pharma_user', JSON.stringify(completeUserData))
+      
+      return completeUserData
     }
     return user
   }
@@ -339,7 +370,13 @@ export const AuthProvider = ({ children }) => {
   // Check if user is authenticated
   const isAuthenticated = () => {
     const authenticated = !!(token && user)
-    console.log('Authentication check:', { token: !!token, user: !!user, authenticated }) // Debug log
+    console.log('🔐 isAuthenticated check:', { 
+      token: !!token, 
+      user: !!user, 
+      authenticated,
+      tokenValue: token ? `${token.substring(0, 10)}...` : null,
+      userValue: user ? { id: user.id, username: user.username } : null
+    })
     return authenticated
   }
 

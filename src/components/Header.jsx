@@ -11,8 +11,7 @@ const Header = ({
   showProfileDropdown,
   setShowProfileDropdown,
   onLogout,
-  user,
-  onNavigate
+  user
 }) => {
   const dismissNotification = (id) => {
     setNotifications(notifications.filter(notif => notif.id !== id))
@@ -156,7 +155,6 @@ const Header = ({
             setShowProfileDropdown={setShowProfileDropdown}
             onLogout={onLogout}
             user={user}
-            onNavigate={onNavigate}
           />
         </div>
       </div>
