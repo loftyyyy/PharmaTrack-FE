@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 
 const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
-  const { login, demoLogin, loading } = useAuth()
+  const { login, demoLogin } = useAuth()
   const [formData, setFormData] = useState({
-    username: 'admin',
-    password: 'password123'
+    username: '',
+    password: ''
   })
   
   // Use localStorage to persist error across re-renders
@@ -16,7 +16,6 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [renderCount, setRenderCount] = useState(0)
   
   // Persist error to localStorage whenever it changes
   useEffect(() => {
@@ -39,94 +38,43 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
     setError('')
     localStorage.removeItem('pharma_login_error')
   }
-  
-  // Track renders and component lifecycle
-  console.log('🎬 LoginPage RENDER #' + (renderCount + 1))
-  console.log('🎬 Current state:', { error, loading, isSubmitting })
-  console.log('🎬 Props:', { isDarkMode, isSystemTheme })
-  
-  // Increment render count
-  useState(() => {
-    setRenderCount(prev => prev + 1)
-  })
-  
-  // Track when error state changes
-  useEffect(() => {
-    console.log('🔄 ERROR STATE CHANGED TO:', error)
-  }, [error])
-  
-  // Track when loading state changes  
-  useEffect(() => {
-    console.log('🔄 LOADING STATE CHANGED TO:', loading)
-  }, [loading])
-  
-  // Track when submitting state changes
-  useEffect(() => {
-    console.log('🔄 SUBMITTING STATE CHANGED TO:', isSubmitting)
-  }, [isSubmitting])
 
   // Handle form submission for real login
   const handleSubmit = async (e) => {
-    console.log('🚀 FORM SUBMIT EVENT TRIGGERED')
-    console.log('🚀 Event type:', e.type)
-    console.log('🚀 Event target:', e.target)
-    
     // Prevent default form submission
     e.preventDefault()
     e.stopPropagation()
-    console.log('🚀 preventDefault() and stopPropagation() called')
-    
-    console.log('🚀 Starting login attempt with:', formData.username)
-    console.log('🚀 Current error state before login:', error)
     
     // Clear any existing error and set submitting state
-    console.log('🧹 Clearing error state')
     clearError()
-    console.log('⏳ Setting isSubmitting to true')
     setIsSubmitting(true)
 
     try {
-      console.log('📞 About to call login function...')
       const result = await login(formData.username, formData.password)
-      console.log('📋 Login result received:', result)
-      console.log('📋 Result type:', typeof result)
-      console.log('📋 Result success:', result?.success)
-      console.log('📋 Result error:', result?.error)
       
       if (!result || !result.success) {
         // Convert technical errors to user-friendly messages
         const errorMessage = result?.error || 'Login failed - no error message received'
         const friendlyError = getFriendlyErrorMessage(errorMessage)
-        console.log('🔴 Login failed, setting error to:', friendlyError)
         
         // Set error immediately and persist it
-        console.log('🔴 Setting error state immediately')
         setError(friendlyError)
         localStorage.setItem('pharma_login_error', friendlyError)
         
-        console.log('🔴 Error should be set after timeout')
         return false
       } else {
-        console.log('✅ Login successful!')
         clearError()
       }
     } catch (err) {
-      console.log('💥 Login exception caught:', err)
-      console.log('💥 Exception type:', typeof err)
-      console.log('💥 Exception message:', err?.message)
       const friendlyError = getFriendlyErrorMessage(err?.message || 'An unexpected error occurred')
-      console.log('🔴 Setting error from exception:', friendlyError)
       
       // Set error immediately and persist it
-      console.log('🔴 Setting error state from exception immediately')
       setError(friendlyError)
       localStorage.setItem('pharma_login_error', friendlyError)
       
       return false
     } finally {
-      console.log('🏁 Setting isSubmitting to false')
       setIsSubmitting(false)
-      console.log('🏁 Login attempt finished')
     }
   }
 
@@ -240,7 +188,7 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
       if (!result.success) {
         setError('Demo mode is temporarily unavailable. Please try the regular login.')
       }
-    } catch (err) {
+    } catch {
       setError('Demo mode is temporarily unavailable. Please try the regular login.')
     } finally {
       setIsSubmitting(false)
@@ -422,79 +370,6 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
             >
               Demo Login
             </button>
-            
-            {/* Temporary test buttons */}
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🧪 Test error button clicked')
-                  setError('This is a test error message to verify error display is working!')
-                }}
-                className={`w-full py-2 px-4 rounded-lg text-sm transition-all duration-200 border ${
-                  isDarkMode
-                    ? 'border-gray-600 text-gray-400 hover:bg-gray-700'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                🧪 Test Error Display
-              </button>
-              
-              <button
-                type="button"
-                onClick={async () => {
-                  console.log('🧪 Testing login with wrong credentials')
-                  const testEvent = { preventDefault: () => {}, stopPropagation: () => {}, type: 'test', target: 'test-button' }
-                  // Temporarily change form data
-                  const originalData = formData
-                  setFormData({ username: 'wronguser', password: 'wrongpass' })
-                  // Call handleSubmit directly
-                  await handleSubmit(testEvent)
-                  // Restore original data
-                  setFormData(originalData)
-                }}
-                className={`w-full py-2 px-4 rounded-lg text-sm transition-all duration-200 border ${
-                  isDarkMode
-                    ? 'border-gray-600 text-gray-400 hover:bg-gray-700'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                🧪 Test Wrong Login
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🧪 Testing network error')
-                  setError('NETWORK_ERROR: Unable to connect to the server. Please check if the backend server is running and try again.')
-                  localStorage.setItem('pharma_login_error', 'NETWORK_ERROR: Unable to connect to the server. Please check if the backend server is running and try again.')
-                }}
-                className={`w-full py-2 px-4 rounded-lg text-sm transition-all duration-200 border ${
-                  isDarkMode
-                    ? 'border-gray-600 text-gray-400 hover:bg-gray-700'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                🧪 Test Network Error
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🗑️ Clearing localStorage for testing')
-                  localStorage.removeItem('pharma_token')
-                  localStorage.removeItem('pharma_user')
-                  window.location.reload()
-                }}
-                className={`w-full py-2 px-4 rounded-lg text-sm transition-all duration-200 border ${
-                  isDarkMode
-                    ? 'border-gray-600 text-gray-400 hover:bg-gray-700'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                🗑️ Clear Auth & Reload
-              </button>
-            </div>
           </div>
         </form>
 

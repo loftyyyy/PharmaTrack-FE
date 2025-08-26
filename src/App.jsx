@@ -15,6 +15,19 @@ import SuppliersPage from './pages/SuppliersPage'
 import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
 
+// Import new role-based pages
+import AllProductsPage from './pages/AllProductsPage'
+import CategoriesPage from './pages/CategoriesPage'
+import ProductBatchesPage from './pages/ProductBatchesPage'
+import StockLevelsPage from './pages/StockLevelsPage'
+import StockAdjustmentsPage from './pages/StockAdjustmentsPage'
+import PurchasesPage from './pages/PurchasesPage'
+import CustomersPage from './pages/CustomersPage'
+import SalesPOSPage from './pages/SalesPOSPage'
+
+// Import ProtectedRoute component
+import ProtectedRoute from './components/ProtectedRoute'
+
 // Protected App Component
 const ProtectedApp = () => {
   const { user, logout, isAuthenticated, loading } = useAuth()
@@ -83,44 +96,7 @@ const ProtectedApp = () => {
     }
   ])
 
-  // Sidebar items with routing paths
-  const sidebarItems = [
-    { 
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path></svg>
-    },
-    { 
-      name: 'My Profile',
-      path: '/profile',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
-    },
-    { 
-      name: 'Inventory',
-      path: '/inventory',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-    },
-    { 
-      name: 'Orders',
-      path: '/orders',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd"></path></svg>
-    },
-    { 
-      name: 'Suppliers',
-      path: '/suppliers',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-    },
-    { 
-      name: 'Reports',
-      path: '/reports',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a2 2 0 002 2h2a2 2 0 002-2V3a2 2 0 012 2v6.5l1.707 1.707A1 1 0 0116 16v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2a1 1 0 01.293-.707L6 13.5V5z" clipRule="evenodd"></path></svg>
-    },
-    { 
-      name: 'Users',
-      path: '/users',
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>
-    }
-  ]
+
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -172,7 +148,6 @@ const ProtectedApp = () => {
         {/* Sidebar */}
         <Sidebar 
           isDarkMode={isDarkMode}
-          sidebarItems={sidebarItems}
         />
 
         {/* Main Content */}
@@ -206,11 +181,196 @@ const ProtectedApp = () => {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage isDarkMode={isDarkMode} />} />
               <Route path="/profile" element={<ProfilePage isDarkMode={isDarkMode} />} />
-              <Route path="/inventory" element={<InventoryPage isDarkMode={isDarkMode} />} />
-              <Route path="/orders" element={<OrdersPage isDarkMode={isDarkMode} />} />
-              <Route path="/suppliers" element={<SuppliersPage isDarkMode={isDarkMode} />} />
-              <Route path="/reports" element={<ReportsPage isDarkMode={isDarkMode} />} />
-              <Route path="/users" element={<UsersPage isDarkMode={isDarkMode} />} />
+              
+              {/* Admin-only routes */}
+              
+              {/* Products Routes */}
+              <Route path="/all-products" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <AllProductsPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/categories" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <CategoriesPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/product-batches" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <ProductBatchesPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              
+              {/* Inventory Routes */}
+              <Route path="/stock-levels" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <StockLevelsPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/stock-adjustments" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <StockAdjustmentsPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/inventory-logs" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Inventory Logs</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Read-only audit trail of all inventory changes and transactions.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Suppliers Routes */}
+              <Route path="/suppliers" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <SuppliersPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/supplier-mapping" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Product-Supplier Mapping</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Manage which suppliers provide which products with CRUD operations.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Purchases Routes */}
+              <Route path="/purchases" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <PurchasesPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/purchase-items" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Purchase Items</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Detailed view and management of individual items within purchase orders.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Sales Routes */}
+              <Route path="/sales-transactions" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Sales Transactions</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      View, edit, and manage all sales transactions with void/cancel handling.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Users & Roles Routes */}
+              <Route path="/users" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <UsersPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/roles" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Roles Management</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Create, edit, and delete user roles with permission management.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Reports Routes */}
+              <Route path="/sales-reports" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Sales Reports</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Filter sales reports by date, customer, and payment method.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              <Route path="/purchase-reports" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Purchase Reports</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Filter purchase reports by supplier, status, and date range.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              <Route path="/inventory-reports" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+                    <h1 className="text-2xl font-bold">Inventory Reports</h1>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Reports for expiring products, low stock alerts, and adjustment logs.
+                    </p>
+                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-center text-gray-500">This page is under development.</p>
+                    </div>
+                  </div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Legacy routes for backward compatibility */}
+              <Route path="/inventory" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <InventoryPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/orders" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <OrdersPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports" element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <ReportsPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              
+              {/* Routes accessible by both Admin and Staff */}
+              <Route path="/sales-pos" element={
+                <ProtectedRoute requiredPermission="pos.access">
+                  <SalesPOSPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              <Route path="/customers" element={
+                <ProtectedRoute requiredPermission="customers.view">
+                  <CustomersPage isDarkMode={isDarkMode} />
+                </ProtectedRoute>
+              } />
+              
               <Route path="/login" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </main>
