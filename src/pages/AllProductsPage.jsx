@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { products as productsApi } from '../services/api'
 
 const AllProductsPage = ({ isDarkMode }) => {
   const { user, apiRequest } = useAuth()
@@ -38,7 +39,7 @@ const AllProductsPage = ({ isDarkMode }) => {
     { id: 5, name: 'Antiseptics' }
   ]
 
-  // Mock data for products
+  // Load products from backend with fallback to mock
   useEffect(() => {
     const mockProducts = [
       {
@@ -112,11 +113,44 @@ const AllProductsPage = ({ isDarkMode }) => {
       }
     ]
     
-    setTimeout(() => {
-      setProducts(mockProducts)
-      setCategories(mockCategories)
-      setLoading(false)
-    }, 500)
+    const load = async () => {
+      try {
+        const data = await productsApi.getAll()
+        // Normalize minimal fields expected by UI; backend DTO may differ
+        const normalized = Array.isArray(data) ? data.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || '',
+          category: p.category?.name || p.categoryName || p.category || '',
+          categoryId: p.category?.id || p.categoryId || 0,
+          sku: p.sku || '',
+          barcode: p.barcode || '',
+          unitPrice: typeof p.unitPrice === 'number' ? p.unitPrice : parseFloat(p.unitPrice || 0),
+          costPrice: typeof p.costPrice === 'number' ? p.costPrice : parseFloat(p.costPrice || 0),
+          currentStock: p.currentStock ?? 0,
+          minStockLevel: p.minStockLevel ?? 0,
+          maxStockLevel: p.maxStockLevel ?? 0,
+          unit: p.unit || 'tablets',
+          isActive: p.isActive !== undefined ? p.isActive : true,
+          requiresPrescription: p.requiresPrescription || false,
+          manufacturer: p.manufacturer || '',
+          activeIngredient: p.activeIngredient || '',
+          strength: p.strength || '',
+          dosageForm: p.dosageForm || 'tablet',
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        })) : []
+        setProducts(normalized)
+        setCategories(mockCategories) // keep mock categories until backend endpoint exists
+      } catch (e) {
+        // Fallback to mock on error
+        setProducts(mockProducts)
+        setCategories(mockCategories)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [])
 
   const handleSubmit = (e) => {

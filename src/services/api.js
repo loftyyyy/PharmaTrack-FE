@@ -113,15 +113,17 @@ class ApiService {
   products = {
     getAll: (params) => {
       const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-      return this.get(`/v1/products${queryString}`)
+      return this.get(`/api/v1/products${queryString}`)
     },
-    getById: (id) => this.get(`/v1/products/${id}`),
-    create: (productData) => this.post('/v1/products', productData),
-    update: (id, productData) => this.put(`/v1/products/${id}`, productData),
-    delete: (id) => this.delete(`/v1/products/${id}`),
-    updateStock: (id, quantity) => this.patch(`/v1/products/${id}/stock`, { quantity }),
-    getLowStock: () => this.get('/v1/products/low-stock'),
-    getExpiringSoon: () => this.get('/v1/products/expiring-soon'),
+    getById: (id) => this.get(`/api/v1/products/${id}`),
+    // Backend create endpoint is /api/v1/products/create
+    create: (productData) => this.post('/api/v1/products/create', productData),
+    update: (id, productData) => this.put(`/api/v1/products/${id}`, productData),
+    delete: (id) => this.delete(`/api/v1/products/${id}`),
+    // Optional helpers (uncomment if implemented on backend)
+    // updateStock: (id, quantity) => this.patch(`/api/v1/products/${id}/stock`, { quantity }),
+    // getLowStock: () => this.get('/api/v1/products/low-stock'),
+    // getExpiringSoon: () => this.get('/api/v1/products/expiring-soon'),
   }
 
   // Keep inventory as alias for backward compatibility

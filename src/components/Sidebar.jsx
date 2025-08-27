@@ -179,7 +179,7 @@ const Sidebar = ({ isDarkMode }) => {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 overflow-y-auto">
+      <nav className="flex-1 px-4 py-6 overflow-y-auto scrollbar-hide">
         <ul className="space-y-1">
           {navigationItems.map((item) => (
             <li key={item.name}>
