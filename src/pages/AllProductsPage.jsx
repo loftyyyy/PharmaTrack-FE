@@ -270,10 +270,10 @@ const AllProductsPage = ({ isDarkMode }) => {
             Manage your complete product catalog with pricing, stock levels, and details
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
-        >
+                 <button
+           onClick={() => setShowAddModal(true)}
+           className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+         >
           <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
           </svg>
@@ -452,30 +452,14 @@ const AllProductsPage = ({ isDarkMode }) => {
                         {product.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEdit(product)}
-                          className="text-pharma-teal hover:text-pharma-medium"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => toggleStatus(product.id)}
-                          className={`${
-                            product.isActive ? 'text-yellow-600 hover:text-yellow-800' : 'text-green-600 hover:text-green-800'
-                          }`}
-                        >
-                          {product.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                       <button
+                         onClick={() => handleEdit(product)}
+                         className="text-pharma-teal hover:text-pharma-medium"
+                       >
+                         Edit
+                       </button>
+                     </td>
                   </tr>
                 )
               })}
@@ -752,10 +736,10 @@ const AllProductsPage = ({ isDarkMode }) => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all duration-200"
-                >
+                                 <button
+                   type="submit"
+                   className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+                 >
                   {editingProduct ? 'Update' : 'Add'} Product
                 </button>
               </div>
