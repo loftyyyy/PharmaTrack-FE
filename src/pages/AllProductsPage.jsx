@@ -11,18 +11,19 @@ const AllProductsPage = ({ isDarkMode }) => {
   const [editingProduct, setEditingProduct] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
-  const [formData, setFormData] = useState({
-    name: '',
-    brand: '',
-    manufacturer: '',
-    dosageForm: '',
-    strength: '',
-    minimumStock: '',
-    drugClassification: '',
-    description: '',
-    category: '',
-    barcode: '',
-  })
+     const [formData, setFormData] = useState({
+     name: '',
+     brand: '',
+     manufacturer: '',
+     dosageForm: '',
+     strength: '',
+     minimumStock: '',
+     drugClassification: '',
+     description: '',
+     category: '',
+     barcode: '',
+     active: true,
+   })
 
   // Mock data for categories
   const mockCategories = [
@@ -153,20 +154,21 @@ const AllProductsPage = ({ isDarkMode }) => {
     load()
   }, [])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    const dto = {
-      name: formData.name,
-      brand: formData.brand,
-      manufacturer: formData.manufacturer,
-      dosageForm: formData.dosageForm,
-      strength: formData.strength,
-      minimumStock: parseInt(formData.minimumStock),
-      drugClassification: formData.drugClassification,
-      description: formData.description,
-      categoryId: parseInt(formData.category),
-      barcode: formData.barcode,
-    }
+     const handleSubmit = async (e) => {
+     e.preventDefault()
+     const dto = {
+       name: formData.name,
+       brand: formData.brand,
+       manufacturer: formData.manufacturer,
+       dosageForm: formData.dosageForm,
+       strength: formData.strength,
+       minimumStock: parseInt(formData.minimumStock),
+       drugClassification: formData.drugClassification,
+       description: formData.description,
+       categoryId: parseInt(formData.category),
+       barcode: formData.barcode,
+       active: formData.active,
+     }
     try {
       if (editingProduct) {
         await productsApi.update(editingProduct.id, dto)
@@ -180,45 +182,41 @@ const AllProductsPage = ({ isDarkMode }) => {
     }
   }
 
-  const resetForm = () => {
-    setShowAddModal(false)
-    setEditingProduct(null)
-    setFormData({
-      name: '',
-      brand: '',
-      manufacturer: '',
-      dosageForm: '',
-      strength: '',
-      minimumStock: '',
-      drugClassification: '',
-      description: '',
-      category: '',
-      barcode: '',
-    })
-  }
+     const resetForm = () => {
+     setShowAddModal(false)
+     setEditingProduct(null)
+     setFormData({
+       name: '',
+       brand: '',
+       manufacturer: '',
+       dosageForm: '',
+       strength: '',
+       minimumStock: '',
+       drugClassification: '',
+       description: '',
+       category: '',
+       barcode: '',
+       active: true,
+     })
+   }
 
-  const handleEdit = (product) => {
-    setEditingProduct(product)
-    setFormData({
-      name: product.name,
-      description: product.description,
-      category: product.categoryId.toString(),
-      sku: product.sku,
-      barcode: product.barcode,
-      unitPrice: product.unitPrice.toString(),
-      costPrice: product.costPrice.toString(),
-      minStockLevel: product.minStockLevel.toString(),
-      maxStockLevel: product.maxStockLevel.toString(),
-      unit: product.unit,
-      isActive: product.isActive,
-      requiresPrescription: product.requiresPrescription,
-      manufacturer: product.manufacturer,
-      activeIngredient: product.activeIngredient,
-      strength: product.strength,
-      dosageForm: product.dosageForm
-    })
-    setShowAddModal(true)
-  }
+     const handleEdit = (product) => {
+     setEditingProduct(product)
+     setFormData({
+       name: product.name,
+       brand: product.brand || '',
+       description: product.description,
+       category: product.categoryId.toString(),
+       barcode: product.barcode,
+       manufacturer: product.manufacturer,
+       dosageForm: product.dosageForm,
+       strength: product.strength,
+       minimumStock: product.minStockLevel || 0,
+       drugClassification: product.drugClassification || '',
+       active: product.isActive
+     })
+     setShowAddModal(true)
+   }
 
   const handleDelete = (productId) => {
     if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
@@ -647,14 +645,12 @@ const AllProductsPage = ({ isDarkMode }) => {
                    />
                  </div>
 
-                {/* Medical Information */}
-                <div className="lg:col-span-3">
-                  <h3 className="text-lg font-semibold mb-3 mt-4">Medical Information</h3>
-                </div>
-                
-                
-                
-                                 <div>
+                                 {/* Medical Information */}
+                 <div className="lg:col-span-3">
+                   <h3 className="text-lg font-semibold mb-3 mt-4">Medical Information</h3>
+                 </div>
+                 
+                 <div>
                    <label className={`block text-sm font-medium mb-2 ${
                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
                    }`}>
@@ -674,8 +670,8 @@ const AllProductsPage = ({ isDarkMode }) => {
                      placeholder="e.g., 500mg, 250ml"
                    />
                  </div>
-                
-                                 <div>
+                 
+                 <div>
                    <label className={`block text-sm font-medium mb-2 ${
                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
                    }`}>
@@ -694,8 +690,8 @@ const AllProductsPage = ({ isDarkMode }) => {
                      }`}
                      placeholder="e.g., tablet, capsule, syrup"
                    />
-                                  </div>
-                 
+                 </div>
+                  
                  <div>
                    <label className={`block text-sm font-medium mb-2 ${
                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -718,6 +714,33 @@ const AllProductsPage = ({ isDarkMode }) => {
                          {classification.name}
                        </option>
                      ))}
+                   </select>
+                 </div>
+
+                 {/* Status */}
+                 <div className="lg:col-span-3">
+                   <h3 className="text-lg font-semibold mb-3 mt-4">Status</h3>
+                 </div>
+                 
+                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Active Status *
+                   </label>
+                   <select
+                     required
+                     value={formData.active}
+                     onChange={(e) => setFormData({ ...formData, active: e.target.value === 'true' })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                   >
+                     <option value="">Select Status</option>
+                     <option value="true">Active</option>
+                     <option value="false">Inactive</option>
                    </select>
                  </div>
 
