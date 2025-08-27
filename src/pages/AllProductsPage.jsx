@@ -13,21 +13,15 @@ const AllProductsPage = ({ isDarkMode }) => {
   const [filterCategory, setFilterCategory] = useState('all')
   const [formData, setFormData] = useState({
     name: '',
+    brand: '',
+    manufacturer: '',
+    dosageForm: '',
+    strength: '',
+    minimumStock: '',
+    drugClassification: '',
     description: '',
     category: '',
-    sku: '',
     barcode: '',
-    unitPrice: '',
-    costPrice: '',
-    minStockLevel: '',
-    maxStockLevel: '',
-    unit: 'tablets',
-    isActive: true,
-    requiresPrescription: false,
-    manufacturer: '',
-    activeIngredient: '',
-    strength: '',
-    dosageForm: 'tablet'
   })
 
   // Mock data for categories
@@ -37,6 +31,12 @@ const AllProductsPage = ({ isDarkMode }) => {
     { id: 3, name: 'Vitamins' },
     { id: 4, name: 'Antacids' },
     { id: 5, name: 'Antiseptics' }
+  ]
+
+  // Mock data for drug classifications
+  const mockDrugClassifications = [
+    { id: 'OTC', name: 'Over the Counter' },
+    { id: 'PRESCRIPTION', name: 'Prescription Required' }
   ]
 
   // Load products from backend with fallback to mock
@@ -153,44 +153,31 @@ const AllProductsPage = ({ isDarkMode }) => {
     load()
   }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (editingProduct) {
-      // Update existing product
-      setProducts(products.map(product => 
-        product.id === editingProduct.id 
-          ? { 
-              ...product, 
-              ...formData, 
-              unitPrice: parseFloat(formData.unitPrice),
-              costPrice: parseFloat(formData.costPrice),
-              minStockLevel: parseInt(formData.minStockLevel),
-              maxStockLevel: parseInt(formData.maxStockLevel),
-              categoryId: parseInt(formData.category),
-              category: categories.find(c => c.id === parseInt(formData.category))?.name || '',
-              updatedAt: new Date().toISOString()
-            }
-          : product
-      ))
-    } else {
-      // Add new product
-      const newProduct = {
-        id: Date.now(),
-        ...formData,
-        unitPrice: parseFloat(formData.unitPrice),
-        costPrice: parseFloat(formData.costPrice),
-        minStockLevel: parseInt(formData.minStockLevel),
-        maxStockLevel: parseInt(formData.maxStockLevel),
-        categoryId: parseInt(formData.category),
-        category: categories.find(c => c.id === parseInt(formData.category))?.name || '',
-        currentStock: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      setProducts([...products, newProduct])
+    const dto = {
+      name: formData.name,
+      brand: formData.brand,
+      manufacturer: formData.manufacturer,
+      dosageForm: formData.dosageForm,
+      strength: formData.strength,
+      minimumStock: parseInt(formData.minimumStock),
+      drugClassification: formData.drugClassification,
+      description: formData.description,
+      categoryId: parseInt(formData.category),
+      barcode: formData.barcode,
     }
-    
-    resetForm()
+    try {
+      if (editingProduct) {
+        await productsApi.update(editingProduct.id, dto)
+      } else {
+        await productsApi.create(dto)
+      }
+      await fetchProducts()
+      resetForm()
+    } catch (err) {
+      alert(err.message || 'Failed to save product')
+    }
   }
 
   const resetForm = () => {
@@ -198,21 +185,15 @@ const AllProductsPage = ({ isDarkMode }) => {
     setEditingProduct(null)
     setFormData({
       name: '',
+      brand: '',
+      manufacturer: '',
+      dosageForm: '',
+      strength: '',
+      minimumStock: '',
+      drugClassification: '',
       description: '',
       category: '',
-      sku: '',
       barcode: '',
-      unitPrice: '',
-      costPrice: '',
-      minStockLevel: '',
-      maxStockLevel: '',
-      unit: 'tablets',
-      isActive: true,
-      requiresPrescription: false,
-      manufacturer: '',
-      activeIngredient: '',
-      strength: '',
-      dosageForm: 'tablet'
     })
   }
 
@@ -534,18 +515,19 @@ const AllProductsPage = ({ isDarkMode }) => {
                   }`}>
                     Product Name *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter product name"
-                  />
+                                     <input
+                     type="text"
+                     required
+                     maxLength="150"
+                     value={formData.name}
+                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter product name"
+                   />
                 </div>
                 
                 <div>
@@ -573,25 +555,26 @@ const AllProductsPage = ({ isDarkMode }) => {
                   </select>
                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    SKU *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter SKU"
-                  />
-                </div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Brand *
+                   </label>
+                   <input
+                     type="text"
+                     required
+                     maxLength="100"
+                     value={formData.brand}
+                     onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter brand"
+                   />
+                 </div>
                 
                 <div className="lg:col-span-3">
                   <label className={`block text-sm font-medium mb-2 ${
@@ -617,263 +600,144 @@ const AllProductsPage = ({ isDarkMode }) => {
                   <h3 className="text-lg font-semibold mb-3 mt-4">Identification</h3>
                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Barcode
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.barcode}
-                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter barcode"
-                  />
-                </div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Barcode *
+                   </label>
+                   <input
+                     type="text"
+                     required
+                     maxLength="50"
+                     value={formData.barcode}
+                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter barcode"
+                   />
+                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Manufacturer
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.manufacturer}
-                    onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter manufacturer"
-                  />
-                </div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Manufacturer *
+                   </label>
+                   <input
+                     type="text"
+                     required
+                     maxLength="100"
+                     value={formData.manufacturer}
+                     onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter manufacturer"
+                   />
+                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Unit
-                  </label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  >
-                    <option value="tablets">Tablets</option>
-                    <option value="capsules">Capsules</option>
-                    <option value="bottles">Bottles</option>
-                    <option value="boxes">Boxes</option>
-                    <option value="tubes">Tubes</option>
-                    <option value="vials">Vials</option>
-                    <option value="sachets">Sachets</option>
-                  </select>
-                </div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Minimum Stock *
+                   </label>
+                   <input
+                     type="number"
+                     required
+                     min="0"
+                     value={formData.minimumStock}
+                     onChange={(e) => setFormData({ ...formData, minimumStock: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="0"
+                   />
+                 </div>
 
                 {/* Medical Information */}
                 <div className="lg:col-span-3">
                   <h3 className="text-lg font-semibold mb-3 mt-4">Medical Information</h3>
                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Active Ingredient
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.activeIngredient}
-                    onChange={(e) => setFormData({ ...formData, activeIngredient: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter active ingredient"
-                  />
-                </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Strength
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.strength}
-                    onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="e.g., 500mg, 250ml"
-                  />
-                </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Dosage Form
-                  </label>
-                  <select
-                    value={formData.dosageForm}
-                    onChange={(e) => setFormData({ ...formData, dosageForm: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  >
-                    <option value="tablet">Tablet</option>
-                    <option value="capsule">Capsule</option>
-                    <option value="syrup">Syrup</option>
-                    <option value="injection">Injection</option>
-                    <option value="cream">Cream</option>
-                    <option value="ointment">Ointment</option>
-                    <option value="drops">Drops</option>
-                    <option value="inhaler">Inhaler</option>
-                  </select>
-                </div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Strength *
+                   </label>
+                   <input
+                     type="text"
+                     required
+                     maxLength="50"
+                     value={formData.strength}
+                     onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="e.g., 500mg, 250ml"
+                   />
+                 </div>
+                
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Dosage Form *
+                   </label>
+                   <input
+                     type="text"
+                     required
+                     maxLength="50"
+                     value={formData.dosageForm}
+                     onChange={(e) => setFormData({ ...formData, dosageForm: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="e.g., tablet, capsule, syrup"
+                   />
+                                  </div>
+                 
+                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Drug Classification *
+                   </label>
+                   <select
+                     required
+                     value={formData.drugClassification}
+                     onChange={(e) => setFormData({ ...formData, drugClassification: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                   >
+                     <option value="">Select Classification</option>
+                     {mockDrugClassifications.map((classification) => (
+                       <option key={classification.id} value={classification.id}>
+                         {classification.name}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
 
-                {/* Pricing */}
-                <div className="lg:col-span-3">
-                  <h3 className="text-lg font-semibold mb-3 mt-4">Pricing & Stock</h3>
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Unit Price *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formData.unitPrice}
-                    onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="0.00"
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Cost Price *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formData.costPrice}
-                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="0.00"
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Min Stock Level *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formData.minStockLevel}
-                    onChange={(e) => setFormData({ ...formData, minStockLevel: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Max Stock Level *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formData.maxStockLevel}
-                    onChange={(e) => setFormData({ ...formData, maxStockLevel: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="0"
-                  />
-                </div>
 
-                {/* Status Options */}
-                <div className="lg:col-span-3">
-                  <h3 className="text-lg font-semibold mb-3 mt-4">Status & Options</h3>
-                </div>
-                
-                <div className="lg:col-span-3 flex gap-6">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
-                    />
-                    <span className={`ml-2 text-sm ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Active Product
-                    </span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.requiresPrescription}
-                      onChange={(e) => setFormData({ ...formData, requiresPrescription: e.target.checked })}
-                      className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
-                    />
-                    <span className={`ml-2 text-sm ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Requires Prescription
-                    </span>
-                  </label>
-                </div>
               </div>
               
               <div className="flex space-x-3 mt-6">
