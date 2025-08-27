@@ -629,3 +629,4 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
 }
 
 export default StockAdjustmentsPage
+

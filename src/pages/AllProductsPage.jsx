@@ -870,3 +870,4 @@ const AllProductsPage = ({ isDarkMode }) => {
 }
 
 export default AllProductsPage
+
