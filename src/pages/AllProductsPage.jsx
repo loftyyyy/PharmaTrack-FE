@@ -256,11 +256,13 @@ const AllProductsPage = ({ isDarkMode }) => {
             }`}
           >
             <option value="all">All Categories</option>
-            {categories.filter(category => category.active !== false).map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
+            {categories
+              .filter(category => category.active === true)
+              .map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
           </select>
         </div>
       </div>
