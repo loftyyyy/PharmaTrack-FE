@@ -141,10 +141,14 @@ const CategoriesPage = ({ isDarkMode }) => {
             </svg>
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
-          >
+                     <button
+             onClick={() => {
+               setEditingCategory(null)
+               setFormData({ name: '', active: true })
+               setShowAddModal(true)
+             }}
+             className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+           >
             <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -269,21 +273,23 @@ const CategoriesPage = ({ isDarkMode }) => {
                  />
                </div>
                
-               <div className="mb-6">
-                 <label className="flex items-center">
-                   <input
-                     type="checkbox"
-                     checked={formData.active}
-                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                     className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
-                   />
-                   <span className={`ml-2 text-sm ${
-                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                   }`}>
-                     Active Category
-                   </span>
-                 </label>
-               </div>
+                               {editingCategory && (
+                  <div className="mb-6">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.active}
+                        onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                        className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
+                      />
+                      <span className={`ml-2 text-sm ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Active Category
+                      </span>
+                    </label>
+                  </div>
+                )}
               
               <div className="flex space-x-3">
                                  <button
@@ -301,15 +307,15 @@ const CategoriesPage = ({ isDarkMode }) => {
                  >
                    Cancel
                  </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-                    submitting
-                      ? 'opacity-50 cursor-not-allowed bg-gray-400'
-                      : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg'
-                  }`}
-                >
+                                 <button
+                   type="submit"
+                   disabled={submitting}
+                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                     submitting
+                       ? 'opacity-50 cursor-not-allowed bg-gray-400'
+                       : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg'
+                   }`}
+                 >
                   {submitting ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

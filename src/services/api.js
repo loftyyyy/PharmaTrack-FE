@@ -119,7 +119,7 @@ class ApiService {
     // Backend create endpoint is /api/v1/products/create
     create: (productData) => this.post('/api/v1/products/create', productData),
     update: (id, productData) => this.put(`/api/v1/products/${id}`, productData),
-    delete: (id) => this.delete(`/api/v1/products/${id}`),
+    // delete: (id) => this.delete(`/api/v1/products/${id}`),
     // Optional helpers (uncomment if implemented on backend)
     // updateStock: (id, quantity) => this.patch(`/api/v1/products/${id}/stock`, { quantity }),
     // getLowStock: () => this.get('/api/v1/products/low-stock'),
