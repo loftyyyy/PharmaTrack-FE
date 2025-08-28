@@ -111,7 +111,7 @@ const AllProductsPage = ({ isDarkMode }) => {
       name: product.name || '',
       brand: product.brand || '',
       description: product.description || '',
-      category: product.categoryId?.toString() || '',
+      category: product.category?.id?.toString() || '',
       barcode: product.barcode || '',
       manufacturer: product.manufacturer || '',
       dosageForm: product.dosageForm || '',
@@ -140,7 +140,7 @@ const AllProductsPage = ({ isDarkMode }) => {
                          product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.barcode?.includes(searchTerm) ||
                          product.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = filterCategory === 'all' || product.categoryId === parseInt(filterCategory)
+    const matchesCategory = filterCategory === 'all' || product.category?.id === parseInt(filterCategory)
     return matchesSearch && matchesCategory
   })
 
@@ -256,13 +256,11 @@ const AllProductsPage = ({ isDarkMode }) => {
             }`}
           >
             <option value="all">All Categories</option>
-            {categories
-              .filter(category => category.active === true)
-              .map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
+            {categories.filter(category => category.active !== false).map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -311,7 +309,7 @@ const AllProductsPage = ({ isDarkMode }) => {
                       <div>
                         <div className="text-sm font-medium">{product.name}</div>
                         <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {product.category?.name || product.categoryName || 'Unknown Category'} • {product.sku || 'No SKU'}
+                          {product.category?.name || 'Unknown Category'} • {product.sku || 'No SKU'}
                         </div>
                         <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                           {product.barcode || 'No Barcode'} • {product.brand || 'Unknown Brand'}
