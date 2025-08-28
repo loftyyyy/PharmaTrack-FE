@@ -1,80 +1,106 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import apiService from '../services/api'
 
 const CategoriesPage = ({ isDarkMode }) => {
-  const { user, apiRequest } = useAuth()
+  const { user } = useAuth()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    isActive: true
+    active: true
   })
 
-  // Mock data for now
+  // Fetch categories from API
   useEffect(() => {
-    const mockCategories = [
-      { id: 1, name: 'Analgesics', description: 'Pain relief medications', isActive: true, productCount: 25 },
-      { id: 2, name: 'Antibiotics', description: 'Antimicrobial medications', isActive: true, productCount: 18 },
-      { id: 3, name: 'Vitamins', description: 'Vitamin supplements', isActive: true, productCount: 32 },
-      { id: 4, name: 'Antacids', description: 'Stomach acid neutralizers', isActive: true, productCount: 12 },
-      { id: 5, name: 'Antiseptics', description: 'Wound cleaning solutions', isActive: false, productCount: 8 }
-    ]
-    setTimeout(() => {
-      setCategories(mockCategories)
-      setLoading(false)
-    }, 500)
+    fetchCategories()
   }, [])
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (editingCategory) {
-      // Update existing category
-      setCategories(categories.map(cat => 
-        cat.id === editingCategory.id 
-          ? { ...cat, ...formData }
-          : cat
-      ))
-    } else {
-      // Add new category
-      const newCategory = {
-        id: Date.now(),
-        ...formData,
-        productCount: 0
+  const fetchCategories = async () => {
+    try {
+      if (!loading) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
       }
-      setCategories([...categories, newCategory])
+      setError(null)
+      const response = await apiService.categories.getAll()
+      setCategories(response || [])
+    } catch (err) {
+      console.error('Error fetching categories:', err)
+      setError(err.message || 'Failed to fetch categories')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-    
-    setShowAddModal(false)
-    setEditingCategory(null)
-    setFormData({ name: '', description: '', isActive: true })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      setSubmitting(true)
+      setError(null)
+      
+      if (editingCategory) {
+        // Update existing category
+        const updatedCategory = await apiService.categories.update(editingCategory.id, formData)
+        setCategories(categories.map(cat => 
+          cat.id === editingCategory.id ? updatedCategory : cat
+        ))
+        setSuccess('Category updated successfully!')
+        
+        // Close modal and reset form on success
+        setShowAddModal(false)
+        setEditingCategory(null)
+        setFormData({ name: '', active: true })
+        
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000)
+      } else {
+        // Add new category
+        const newCategory = await apiService.categories.create(formData)
+        setCategories([...categories, newCategory])
+        setSuccess('Category created successfully!')
+        
+        // Close modal and reset form on success
+        setShowAddModal(false)
+        setEditingCategory(null)
+        setFormData({ name: '', active: true })
+        
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000)
+      }
+    } catch (err) {
+      console.error('Error saving category:', err)
+      setError(err.message || 'Failed to save category')
+      
+      // Close modal immediately on error so user can see the error message
+      setShowAddModal(false)
+      setEditingCategory(null)
+      setFormData({ name: '', active: true })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleEdit = (category) => {
     setEditingCategory(category)
     setFormData({
       name: category.name,
-      description: category.description,
-      isActive: category.isActive
+      active: category.active !== undefined ? category.active : true
     })
     setShowAddModal(true)
   }
 
-  const handleDelete = (categoryId) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      setCategories(categories.filter(cat => cat.id !== categoryId))
-    }
-  }
 
-  const toggleStatus = (categoryId) => {
-    setCategories(categories.map(cat =>
-      cat.id === categoryId
-        ? { ...cat, isActive: !cat.isActive }
-        : cat
-    ))
-  }
+
+
 
   if (loading) {
     return (
@@ -96,76 +122,121 @@ const CategoriesPage = ({ isDarkMode }) => {
             Manage your product categories and classifications
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
-        >
-          <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Add Category
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={fetchCategories}
+            disabled={loading || refreshing}
+            className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
+              loading || refreshing
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:shadow-lg'
+            } ${
+              isDarkMode
+                ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <svg className={`w-5 h-5 inline mr-2 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
+          >
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Category
+          </button>
+        </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {error}
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-700 hover:text-red-900"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {success && (
+        <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            {success}
+            <button
+              onClick={() => setSuccess(null)}
+              className="ml-auto text-green-700 hover:text-green-900"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => (
-          <div key={category.id} className={`rounded-lg border p-6 ${
-            isDarkMode 
-              ? 'bg-gray-800 border-gray-700' 
-              : 'bg-white border-gray-200'
-          }`}>
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">{category.name}</h3>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {category.description}
-                </p>
-              </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                category.isActive
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {category.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-            
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
-              {category.productCount} products
-            </div>
+      {categories.length === 0 && !loading ? (
+        <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          <svg className="mx-auto h-12 w-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+          </svg>
+          <h3 className="text-lg font-medium mb-2">No categories found</h3>
+          <p className="text-sm">Get started by creating your first product category.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categories.map((category) => (
+                         <div key={category.id} className={`rounded-lg border p-6 ${
+               isDarkMode 
+                 ? 'bg-gray-800 border-gray-700' 
+                 : 'bg-white border-gray-200'
+             }`}>
+               <div className="mb-4">
+                 <h3 className="text-lg font-semibold">{category.name}</h3>
+                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-2 ${
+                   category.active !== false
+                     ? 'bg-green-100 text-green-800'
+                     : 'bg-red-100 text-red-800'
+                 }`}>
+                   {category.active !== false ? 'Active' : 'Inactive'}
+                 </span>
+               </div>
 
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleEdit(category)}
-                className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
-                  isDarkMode
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => toggleStatus(category.id)}
-                className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
-                  category.isActive
-                    ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                    : 'bg-green-100 text-green-800 hover:bg-green-200'
-                }`}
-              >
-                {category.isActive ? 'Deactivate' : 'Activate'}
-              </button>
-              <button
-                onClick={() => handleDelete(category.id)}
-                className="py-2 px-3 rounded text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+               <div className="flex space-x-2">
+                 <button
+                   onClick={() => handleEdit(category)}
+                   className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
+                     isDarkMode
+                       ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                   }`}
+                 >
+                   Edit
+                 </button>
+               </div>
+             </div>
+          ))}
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showAddModal && (
@@ -177,83 +248,79 @@ const CategoriesPage = ({ isDarkMode }) => {
               {editingCategory ? 'Edit Category' : 'Add New Category'}
             </h2>
             
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Category Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="Enter category name"
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  rows="3"
-                  placeholder="Enter category description"
-                />
-              </div>
-              
-              <div className="mb-6">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
-                  />
-                  <span className={`ml-2 text-sm ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Active Category
-                  </span>
-                </label>
-              </div>
+                         <form onSubmit={handleSubmit}>
+               <div className="mb-6">
+                 <label className={`block text-sm font-medium mb-2 ${
+                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                 }`}>
+                   Category Name
+                 </label>
+                 <input
+                   type="text"
+                   required
+                   value={formData.name}
+                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                     isDarkMode
+                       ? 'bg-gray-700 border-gray-600 text-white'
+                       : 'bg-white border-gray-300 text-gray-900'
+                   }`}
+                   placeholder="Enter category name"
+                 />
+               </div>
+               
+               <div className="mb-6">
+                 <label className="flex items-center">
+                   <input
+                     type="checkbox"
+                     checked={formData.active}
+                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                     className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
+                   />
+                   <span className={`ml-2 text-sm ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Active Category
+                   </span>
+                 </label>
+               </div>
               
               <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setEditingCategory(null)
-                    setFormData({ name: '', description: '', isActive: true })
-                  }}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                    isDarkMode
-                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  }`}
-                >
-                  Cancel
-                </button>
+                                 <button
+                   type="button"
+                   onClick={() => {
+                     setShowAddModal(false)
+                     setEditingCategory(null)
+                     setFormData({ name: '', active: true })
+                   }}
+                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                     isDarkMode
+                       ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                       : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                   }`}
+                 >
+                   Cancel
+                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all duration-200"
+                  disabled={submitting}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    submitting
+                      ? 'opacity-50 cursor-not-allowed bg-gray-400'
+                      : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg'
+                  }`}
                 >
-                  {editingCategory ? 'Update' : 'Add'} Category
+                  {submitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {editingCategory ? 'Updating...' : 'Adding...'}
+                    </>
+                  ) : (
+                    `${editingCategory ? 'Update' : 'Add'} Category`
+                  )}
                 </button>
               </div>
             </form>

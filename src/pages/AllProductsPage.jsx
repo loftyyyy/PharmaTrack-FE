@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { products as productsApi } from '../services/api'
+import { products as productsApi, categories as categoriesApi } from '../services/api'
 
 const AllProductsPage = ({ isDarkMode }) => {
   const { user, apiRequest } = useAuth()
@@ -142,7 +142,15 @@ const AllProductsPage = ({ isDarkMode }) => {
           updatedAt: p.updatedAt,
         })) : []
         setProducts(normalized)
-        setCategories(mockCategories) // keep mock categories until backend endpoint exists
+        
+        // Load categories from API
+        try {
+          const categoriesResponse = await categoriesApi.getAll()
+          setCategories(categoriesResponse || [])
+        } catch (categoryError) {
+          console.warn('Failed to load categories, using mock data:', categoryError)
+          setCategories(mockCategories)
+        }
       } catch (e) {
         // Fallback to mock on error
         setProducts(mockProducts)
@@ -200,23 +208,31 @@ const AllProductsPage = ({ isDarkMode }) => {
      })
    }
 
-     const handleEdit = (product) => {
-     setEditingProduct(product)
-     setFormData({
-       name: product.name,
-       brand: product.brand || '',
-       description: product.description,
-       category: product.categoryId.toString(),
-       barcode: product.barcode,
-       manufacturer: product.manufacturer,
-       dosageForm: product.dosageForm,
-       strength: product.strength,
-       minimumStock: product.minStockLevel || 0,
-       drugClassification: product.drugClassification || '',
-       active: product.isActive
-     })
-     setShowAddModal(true)
-   }
+     const handleEdit = async (product) => {
+       // Refresh categories before opening edit modal
+       try {
+         const categoriesResponse = await categoriesApi.getAll()
+         setCategories(categoriesResponse || [])
+       } catch (error) {
+         console.warn('Failed to refresh categories:', error)
+       }
+       
+       setEditingProduct(product)
+       setFormData({
+         name: product.name,
+         brand: product.brand || '',
+         description: product.description,
+         category: product.categoryId.toString(),
+         barcode: product.barcode,
+         manufacturer: product.manufacturer,
+         dosageForm: product.dosageForm,
+         strength: product.strength,
+         minimumStock: product.minStockLevel || 0,
+         drugClassification: product.drugClassification || '',
+         active: product.isActive
+       })
+       setShowAddModal(true)
+     }
 
   const handleDelete = (productId) => {
     if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
@@ -268,15 +284,42 @@ const AllProductsPage = ({ isDarkMode }) => {
             Manage your complete product catalog with pricing, stock levels, and details
           </p>
         </div>
-                 <button
-           onClick={() => setShowAddModal(true)}
-           className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
-         >
-          <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Add Product
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={async () => {
+              try {
+                const categoriesResponse = await categoriesApi.getAll()
+                setCategories(categoriesResponse || [])
+              } catch (error) {
+                console.warn('Failed to refresh categories:', error)
+              }
+            }}
+            className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-all duration-200"
+          >
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh Categories
+          </button>
+          <button
+            onClick={async () => {
+              // Refresh categories before opening add modal
+              try {
+                const categoriesResponse = await categoriesApi.getAll()
+                setCategories(categoriesResponse || [])
+              } catch (error) {
+                console.warn('Failed to refresh categories:', error)
+              }
+              setShowAddModal(true)
+            }}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+          >
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Product
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -354,7 +397,7 @@ const AllProductsPage = ({ isDarkMode }) => {
             }`}
           >
             <option value="all">All Categories</option>
-            {categories.map((category) => (
+            {categories.filter(category => category.active !== false).map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>

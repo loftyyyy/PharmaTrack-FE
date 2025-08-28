@@ -157,6 +157,14 @@ class ApiService {
     getByCustomer: (customerId) => this.get(`/v1/orders/customer/${customerId}`),
   }
 
+  // Categories endpoints (v1 API - requires Authorization)
+  categories = {
+    getAll: () => this.get('/api/v1/categories'),
+    getById: (id) => this.get(`/api/v1/categories/${id}`),
+    create: (categoryData) => this.post('/api/v1/categories/create', categoryData),
+    update: (id, categoryData) => this.put(`/api/v1/categories/${id}`, categoryData),
+  }
+
   // Suppliers endpoints (v1 API - requires Authorization)
   suppliers = {
     getAll: () => this.get('/v1/suppliers'),
@@ -216,6 +224,7 @@ export const {
   inventory, // alias for products
   customers,
   orders,
+  categories,
   suppliers,
   dashboard,
   reports,
