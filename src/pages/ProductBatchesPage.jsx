@@ -1,110 +1,138 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { products as productsApi } from '../services/api'
+import { productBatchesApi } from '../services/productBatchesApi'
 
 const ProductBatchesPage = ({ isDarkMode }) => {
   const { user, apiRequest } = useAuth()
   const [batches, setBatches] = useState([])
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingBatch, setEditingBatch] = useState(null)
   const [formData, setFormData] = useState({
     batchNumber: '',
-    productName: '',
+    productId: '',
     manufacturingDate: '',
     expiryDate: '',
     quantity: '',
     costPerUnit: '',
-    supplier: '',
+    location: '',
     status: 'active'
   })
 
-  // Mock data for now
+  // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      const data = await productsApi.getAll()
+      setProducts(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
+      setProducts([])
+    }
+  }
+
+  // Fetch batches from API
+  const fetchBatches = async () => {
+    try {
+      const data = await productBatchesApi.getAll()
+      setBatches(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Failed to fetch batches:', error)
+      setBatches([])
+    }
+  }
+
+  // Helper function to format product display
+  const formatProductDisplay = (product) => {
+    if (!product) return ''
+    const barcode = product.barcode || 'No Barcode'
+    const name = product.name || 'Unknown Product'
+    const brand = product.brand || 'Unknown Brand'
+    const strength = product.strength || 'Unknown Strength'
+    return `[${barcode}] ${name} – ${brand} – ${strength}`
+  }
+
+  // Helper function to get product by ID
+  const getProductById = (productId) => {
+    return products.find(p => p.id === parseInt(productId))
+  }
+
+  // Load data from API
   useEffect(() => {
-    const mockBatches = [
-      {
-        id: 1,
-        batchNumber: 'BTH001',
-        productName: 'Paracetamol 500mg',
-        manufacturingDate: '2024-01-15',
-        expiryDate: '2026-01-15',
-        quantity: 1000,
-        costPerUnit: 2.50,
-        supplier: 'PharmaCorp Ltd',
-        status: 'active'
-      },
-      {
-        id: 2,
-        batchNumber: 'BTH002',
-        productName: 'Amoxicillin 250mg',
-        manufacturingDate: '2024-02-10',
-        expiryDate: '2025-02-10',
-        quantity: 500,
-        costPerUnit: 5.75,
-        supplier: 'MediSupply Inc',
-        status: 'active'
-      },
-      {
-        id: 3,
-        batchNumber: 'BTH003',
-        productName: 'Vitamin C 1000mg',
-        manufacturingDate: '2024-03-05',
-        expiryDate: '2027-03-05',
-        quantity: 250,
-        costPerUnit: 1.25,
-        supplier: 'HealthCorp',
-        status: 'expired'
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        await Promise.all([fetchProducts(), fetchBatches()])
+      } catch (error) {
+        console.error('Failed to load data:', error)
+      } finally {
+        setLoading(false)
       }
-    ]
-    setTimeout(() => {
-      setBatches(mockBatches)
-      setLoading(false)
-    }, 500)
+    }
+    loadData()
   }, [])
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (editingBatch) {
-      // Update existing batch
-      setBatches(batches.map(batch => 
-        batch.id === editingBatch.id 
-          ? { ...batch, ...formData, quantity: parseInt(formData.quantity), costPerUnit: parseFloat(formData.costPerUnit) }
-          : batch
-      ))
-    } else {
-      // Add new batch
-      const newBatch = {
-        id: Date.now(),
-        ...formData,
-        quantity: parseInt(formData.quantity),
-        costPerUnit: parseFloat(formData.costPerUnit)
-      }
-      setBatches([...batches, newBatch])
-    }
-    
-    setShowAddModal(false)
-    setEditingBatch(null)
-    setFormData({
-      batchNumber: '',
-      productName: '',
-      manufacturingDate: '',
-      expiryDate: '',
-      quantity: '',
-      costPerUnit: '',
-      supplier: '',
-      status: 'active'
-    })
-  }
+         const handleSubmit = async (e) => {
+       e.preventDefault()
+       
+       setSubmitting(true)
+       try {
+         const batchData = {
+           batchNumber: formData.batchNumber,
+           productId: parseInt(formData.productId),
+           manufacturingDate: formData.manufacturingDate,
+           expiryDate: formData.expiryDate,
+           quantity: parseInt(formData.quantity),
+           costPerUnit: parseFloat(formData.costPerUnit),
+           location: formData.location,
+           status: formData.status
+         }
+         
+         if (editingBatch) {
+           // Update existing batch
+           const updatedBatch = await productBatchesApi.update(editingBatch.id, batchData)
+           setBatches(batches.map(batch => 
+             batch.id === editingBatch.id ? updatedBatch : batch
+           ))
+         } else {
+           // Add new batch
+           const newBatch = await productBatchesApi.create(batchData)
+           setBatches([...batches, newBatch])
+         }
+         
+         setShowAddModal(false)
+         setEditingBatch(null)
+         setFormData({
+           batchNumber: '',
+           productId: '',
+           manufacturingDate: '',
+           expiryDate: '',
+           quantity: '',
+           costPerUnit: '',
+           location: '',
+           status: 'active'
+         })
+       } catch (error) {
+         console.error('Failed to save batch:', error)
+         // You could add a toast notification here to show the error to the user
+         alert('Failed to save batch. Please try again.')
+       } finally {
+         setSubmitting(false)
+       }
+     }
 
   const handleEdit = (batch) => {
     setEditingBatch(batch)
     setFormData({
       batchNumber: batch.batchNumber,
-      productName: batch.productName,
+      productId: batch.productId?.toString() || '',
       manufacturingDate: batch.manufacturingDate,
       expiryDate: batch.expiryDate,
       quantity: batch.quantity.toString(),
       costPerUnit: batch.costPerUnit.toString(),
-      supplier: batch.supplier,
+      location: batch.location || '',
       status: batch.status
     })
     setShowAddModal(true)
@@ -148,10 +176,10 @@ const ProductBatchesPage = ({ isDarkMode }) => {
             Manage product batches, expiry dates, and batch tracking
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
-        >
+                 <button
+           onClick={() => setShowAddModal(true)}
+           className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+         >
           <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
           </svg>
@@ -177,16 +205,21 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                 }`}>
                   Dates
                 </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-500'
-                }`}>
-                  Quantity & Cost
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-500'
-                }`}>
-                  Status
-                </th>
+                                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                   isDarkMode ? 'text-gray-300' : 'text-gray-500'
+                 }`}>
+                   Quantity & Cost
+                 </th>
+                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                   isDarkMode ? 'text-gray-300' : 'text-gray-500'
+                 }`}>
+                   Location
+                 </th>
+                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                   isDarkMode ? 'text-gray-300' : 'text-gray-500'
+                 }`}>
+                   Status
+                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-500'
                 }`}>
@@ -197,17 +230,15 @@ const ProductBatchesPage = ({ isDarkMode }) => {
             <tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
               {batches.map((batch) => (
                 <tr key={batch.id} className={isDarkMode ? 'bg-gray-800' : 'bg-white'}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium">{batch.batchNumber}</div>
-                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {batch.productName}
-                      </div>
-                      <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {batch.supplier}
-                      </div>
-                    </div>
-                  </td>
+                                     <td className="px-6 py-4 whitespace-nowrap">
+                     <div>
+                       <div className="text-sm font-medium">{batch.batchNumber}</div>
+                       <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                         {getProductById(batch.productId) ? formatProductDisplay(getProductById(batch.productId)) : batch.productName || 'Unknown Product'}
+                       </div>
+                       
+                     </div>
+                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
                       <div>Mfg: {new Date(batch.manufacturingDate).toLocaleDateString()}</div>
@@ -219,20 +250,25 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
-                      <div>Qty: {batch.quantity}</div>
-                      <div>${batch.costPerUnit}/unit</div>
-                      <div className="text-xs text-gray-500">
-                        Total: ${(batch.quantity * batch.costPerUnit).toFixed(2)}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>
-                      {batch.status.charAt(0).toUpperCase() + batch.status.slice(1)}
-                    </span>
-                  </td>
+                                     <td className="px-6 py-4 whitespace-nowrap">
+                     <div className="text-sm">
+                       <div>Qty: {batch.quantity}</div>
+                       <div>${batch.costPerUnit}/unit</div>
+                       <div className="text-xs text-gray-500">
+                         Total: ${(batch.quantity * batch.costPerUnit).toFixed(2)}
+                       </div>
+                     </div>
+                   </td>
+                   <td className="px-6 py-4 whitespace-nowrap">
+                     <div className="text-sm">
+                       {batch.location || '-'}
+                     </div>
+                   </td>
+                   <td className="px-6 py-4 whitespace-nowrap">
+                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>
+                       {batch.status.charAt(0).toUpperCase() + batch.status.slice(1)}
+                     </span>
+                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
@@ -283,25 +319,30 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                   />
                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Product Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.productName}
-                    onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter product name"
-                  />
-                </div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Product *
+                   </label>
+                   <select
+                     required
+                     value={formData.productId}
+                     onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                   >
+                     <option value="">Select Product</option>
+                     {products.map((product) => (
+                       <option key={product.id} value={product.id}>
+                         {formatProductDisplay(product)}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
                 
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
@@ -362,48 +403,49 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                   />
                 </div>
                 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Cost Per Unit *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formData.costPerUnit}
-                    onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter cost per unit"
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Supplier
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.supplier}
-                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="Enter supplier name"
-                  />
-                </div>
-                
-                <div>
+                                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Cost Per Unit *
+                   </label>
+                   <input
+                     type="number"
+                     required
+                     min="0"
+                     step="0.01"
+                     value={formData.costPerUnit}
+                     onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter cost per unit"
+                   />
+                 </div>
+                 
+                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Location
+                   </label>
+                   <input
+                     type="text"
+                     maxLength="50"
+                     value={formData.location}
+                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter storage location"
+                   />
+                 </div>
+                 
+                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
@@ -433,12 +475,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                     setEditingBatch(null)
                     setFormData({
                       batchNumber: '',
-                      productName: '',
+                      productId: '',
                       manufacturingDate: '',
                       expiryDate: '',
                       quantity: '',
                       costPerUnit: '',
-                      supplier: '',
+                      location: '',
                       status: 'active'
                     })
                   }}
@@ -450,12 +492,27 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all duration-200"
-                >
-                  {editingBatch ? 'Update' : 'Add'} Batch
-                </button>
+                                 <button
+                   type="submit"
+                   disabled={submitting}
+                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                     submitting
+                       ? 'bg-gray-400 cursor-not-allowed'
+                       : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg'
+                   }`}
+                 >
+                   {submitting ? (
+                     <span className="flex items-center justify-center">
+                       <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                       </svg>
+                       {editingBatch ? 'Updating...' : 'Adding...'}
+                     </span>
+                   ) : (
+                     `${editingBatch ? 'Update' : 'Add'} Batch`
+                   )}
+                 </button>
               </div>
             </form>
           </div>
