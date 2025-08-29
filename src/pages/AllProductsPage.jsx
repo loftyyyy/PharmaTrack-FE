@@ -23,11 +23,15 @@ const AllProductsPage = ({ isDarkMode }) => {
     active: true,
   })
 
+
+
   // Drug classifications enum values that match backend
   const drugClassifications = [
     { id: 'OTC', name: 'Over the Counter' },
     { id: 'RX', name: 'Prescription Required' }
   ]
+
+
 
   // Load products and categories from backend
   const fetchProducts = async () => {
@@ -49,6 +53,10 @@ const AllProductsPage = ({ isDarkMode }) => {
       setCategories([])
     }
   }
+
+
+
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -228,6 +236,8 @@ const AllProductsPage = ({ isDarkMode }) => {
             <div className="text-2xl">❌</div>
           </div>
         </div>
+
+
       </div>
 
       {/* Filters and Search */}
@@ -382,6 +392,8 @@ const AllProductsPage = ({ isDarkMode }) => {
           </p>
         </div>
       )}
+
+
 
       {/* Add/Edit Modal */}
       {showAddModal && (
@@ -681,6 +693,9 @@ const AllProductsPage = ({ isDarkMode }) => {
           </div>
         </div>
       )}
+
+
+
     </div>
   )
 }

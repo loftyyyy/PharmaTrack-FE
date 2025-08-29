@@ -110,11 +110,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
     setShowAddModal(true)
   }
 
-  const handleDelete = (batchId) => {
-    if (window.confirm('Are you sure you want to delete this batch?')) {
-      setBatches(batches.filter(batch => batch.id !== batchId))
-    }
-  }
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -245,12 +241,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDelete(batch.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+
                     </div>
                   </td>
                 </tr>
