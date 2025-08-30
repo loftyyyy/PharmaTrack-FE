@@ -93,17 +93,18 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                setSubmitting(true)
         setError(null)
         try {
-          const batchData = {
-            batchNumber: formData.batchNumber,
-            productId: parseInt(formData.productId),
-            manufacturingDate: formData.manufacturingDate,
-            expiryDate: formData.expiryDate,
-            quantity: parseInt(formData.quantity),
-            purchasePricePerUnit: parseFloat(formData.costPerUnit), // Backend expects this field name
-            location: formData.location,
-            // Only include status for updates, not for new batches (backend handles it automatically)
-            ...(editingBatch && { batchStatus: formData.status })
-          }
+                     const batchData = {
+             batchNumber: formData.batchNumber,
+             productId: parseInt(formData.productId),
+             manufacturingDate: formData.manufacturingDate,
+             expiryDate: formData.expiryDate,
+             quantity: parseInt(formData.quantity),
+             purchasePricePerUnit: parseFloat(formData.costPerUnit), // Backend expects this field name
+             location: formData.location,
+             // Only include status for updates, not for new batches (backend handles it automatically)
+             // Also don't include status if product is inactive (it should remain unavailable)
+             ...(editingBatch && editingBatch.product && editingBatch.product.active !== false && { batchStatus: formData.status })
+           }
           
                      // Debug: Log the data being sent
            console.log('📋 Form data before processing:', formData)
@@ -253,23 +254,31 @@ const ProductBatchesPage = ({ isDarkMode }) => {
        return dateValue
      }
      
-                       // Debug: Log what status is being loaded into the form
-       const formStatus = batch.status || 'AVAILABLE'
-       console.log('🏷️ Loading status into form:', {
-         originalStatus: batch.status,
-         finalFormStatus: formStatus
+                                               // Debug: Log what status is being loaded into the form
+        const formStatus = batch.status || 'AVAILABLE'
+        console.log('🏷️ Loading status into form:', {
+          originalStatus: batch.status,
+          finalFormStatus: formStatus
+        })
+        
+        // If product is inactive, force status to UNAVAILABLE
+        const effectiveStatus = (batch.product && batch.product.active === false) ? 'UNAVAILABLE' : formStatus
+        console.log('🏷️ Effective status (considering product active status):', {
+          originalStatus: formStatus,
+          productActive: batch.product?.active,
+          effectiveStatus: effectiveStatus
+        })
+       
+       setFormData({
+         batchNumber: batch.batchNumber,
+         productId: (batch.product?.id || batch.productId)?.toString() || '',
+         manufacturingDate: convertDateForForm(batch.manufacturingDate),
+         expiryDate: convertDateForForm(batch.expiryDate),
+         quantity: batch.quantity.toString(),
+         costPerUnit: (batch.purchasePricePerUnit || batch.costPerUnit).toString(),
+         location: batch.location || '',
+         status: effectiveStatus
        })
-      
-      setFormData({
-        batchNumber: batch.batchNumber,
-        productId: (batch.product?.id || batch.productId)?.toString() || '',
-        manufacturingDate: convertDateForForm(batch.manufacturingDate),
-        expiryDate: convertDateForForm(batch.expiryDate),
-        quantity: batch.quantity.toString(),
-        costPerUnit: (batch.purchasePricePerUnit || batch.costPerUnit).toString(),
-        location: batch.location || '',
-        status: formStatus
-      })
      setShowAddModal(true)
    }
 
@@ -290,6 +299,15 @@ const ProductBatchesPage = ({ isDarkMode }) => {
     return 'N/A'
   }
 
+  // Helper function to get effective status (considers product active status)
+  const getEffectiveStatus = (batch) => {
+    // If product is inactive, batch should be unavailable regardless of its actual status
+    if (batch.product && batch.product.active === false) {
+      return 'UNAVAILABLE'
+    }
+    return batch.status || 'AVAILABLE'
+  }
+
   // Helper function to get status color and display
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
@@ -301,6 +319,8 @@ const ProductBatchesPage = ({ isDarkMode }) => {
         return 'bg-orange-100 text-orange-800'
       case 'RECALLED':
         return 'bg-yellow-100 text-yellow-800'
+      case 'UNAVAILABLE':
+        return 'bg-gray-100 text-gray-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -493,36 +513,55 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                         </div>
                       </div>
                                          </td>
-                                         <td className="px-6 py-4 whitespace-nowrap">
-                       <div className="text-sm">
-                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>
-                           {batch.status || 'AVAILABLE'}
-                         </span>
-                       </div>
-                     </td>
+                                                                                   <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus(batch))}`}>
+                            {getEffectiveStatus(batch)}
+                          </span>
+                          {batch.product && batch.product.active === false && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              (Product inactive)
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
                         {batch.location || '-'}
                       </div>
                     </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(batch)}
-                        className="text-pharma-teal hover:text-pharma-medium"
-                      >
-                        Edit
-                      </button>
-
-                    </div>
-                  </td>
+                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                     <div className="flex space-x-2">
+                       <button
+                         onClick={() => handleEdit(batch)}
+                         disabled={batch.product && batch.product.active === false}
+                         className={`${
+                           batch.product && batch.product.active === false
+                             ? 'text-gray-400 cursor-not-allowed opacity-50'
+                             : 'text-pharma-teal hover:text-pharma-medium'
+                         }`}
+                         title={batch.product && batch.product.active === false ? 'Cannot edit: Product is inactive' : 'Edit batch'}
+                       >
+                         Edit
+                       </button>
+ 
+                     </div>
+                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {batches.length === 0 && (
+        <div className="text-center py-8">
+          <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            No batches found. Create your first batch to get started.
+          </p>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showAddModal && (
@@ -682,28 +721,38 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                    />
                  </div>
                  
-                                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Status {!editingBatch && <span className="text-xs text-gray-500">(New batches default to Available)</span>}
-                    </label>
-                                       <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      disabled={!editingBatch} // Disable for new batches
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
-                          ? 'bg-gray-700 border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } ${!editingBatch ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <option value="AVAILABLE">Available</option>
-                      <option value="SOLD_OUT">Sold Out</option>
-                      <option value="EXPIRED">Expired</option>
-                      <option value="RECALLED">Recalled</option>
-                    </select>
-                 </div>
+                                                                       <div>
+                     <label className={`block text-sm font-medium mb-2 ${
+                       isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                     }`}>
+                       Status {!editingBatch && <span className="text-xs text-gray-500">(New batches default to Available)</span>}
+                       {editingBatch && editingBatch.product && editingBatch.product.active === false && (
+                         <span className="text-xs text-red-500 ml-2">(Product inactive - status locked)</span>
+                       )}
+                     </label>
+                                        <select
+                       value={formData.status}
+                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                       disabled={!editingBatch || (editingBatch && editingBatch.product && editingBatch.product.active === false)}
+                       className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                         isDarkMode
+                           ? 'bg-gray-700 border-gray-600 text-white'
+                           : 'bg-white border-gray-300 text-gray-900'
+                       } ${(!editingBatch || (editingBatch && editingBatch.product && editingBatch.product.active === false)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                     >
+                       <option value="AVAILABLE">Available</option>
+                       <option value="SOLD_OUT">Sold Out</option>
+                       <option value="EXPIRED">Expired</option>
+                       <option value="RECALLED">Recalled</option>
+                       <option value="UNAVAILABLE">Unavailable</option>
+                     </select>
+                     {editingBatch && editingBatch.product && editingBatch.product.active === false && (
+                       <p className="text-xs text-red-500 mt-1">
+                         This batch is automatically unavailable because the product is inactive. 
+                         Reactivate the product to change batch status.
+                       </p>
+                     )}
+                  </div>
                  
 
               </div>
