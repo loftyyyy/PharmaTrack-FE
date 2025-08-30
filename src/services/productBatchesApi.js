@@ -1,61 +1,25 @@
 // Product Batches API Service
 // Replace these mock functions with actual backend API calls
 
-const BASE_URL = 'http://localhost:8080/api' // Update this URL to match your backend
+const BASE_URL = 'http://localhost:8080/api/v1' // Update this URL to match your backend
 
 export const productBatchesApi = {
   // Get all batches for a specific product
+  // Note: Your controller doesn't have this endpoint, so we'll filter from getAll
   getByProductId: async (productId) => {
     try {
-      const response = await fetch(`${BASE_URL}/product-batches/product/${productId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      return await response.json()
+      const allBatches = await this.getAll()
+      return allBatches.filter(batch => batch.productId === parseInt(productId))
     } catch (error) {
-      console.error('Failed to fetch product batches:', error)
-      // Return mock data for development
-      return [
-        {
-          id: 1,
-          batchNumber: 'B001-2024',
-          quantity: 100,
-          purchasePricePerUnit: 2.50,
-          expiryDate: '2025-12-31',
-          manufacturingDate: '2024-01-15',
-          location: 'Warehouse A',
-          batchStatus: 'AVAILABLE',
-          createdAt: '2024-01-15T10:00:00',
-          createdById: 1
-        },
-        {
-          id: 2,
-          batchNumber: 'B002-2024',
-          quantity: 75,
-          purchasePricePerUnit: 2.75,
-          expiryDate: '2025-06-30',
-          manufacturingDate: '2024-02-01',
-          location: 'Warehouse B',
-          batchStatus: 'AVAILABLE',
-          createdAt: '2024-02-01T10:00:00',
-          createdById: 1
-        }
-      ]
+      console.error('Failed to fetch product batches by product ID:', error)
+      return []
     }
   },
 
   // Create a new product batch
   create: async (batchData) => {
     try {
-      const response = await fetch(`${BASE_URL}/product-batches`, {
+      const response = await fetch(`${BASE_URL}/productBatches/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,10 +40,32 @@ export const productBatchesApi = {
     }
   },
 
+  // Get a specific product batch by ID
+  getById: async (id) => {
+    try {
+      const response = await fetch(`${BASE_URL}/productBatches/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to fetch product batch by ID:', error)
+      throw error
+    }
+  },
+
   // Update an existing product batch
   update: async (batchId, batchData) => {
     try {
-      const response = await fetch(`${BASE_URL}/product-batches/${batchId}`, {
+      const response = await fetch(`${BASE_URL}/productBatches/${batchId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +91,7 @@ export const productBatchesApi = {
   // Get all batches (for admin purposes)
   getAll: async () => {
     try {
-      const response = await fetch(`${BASE_URL}/product-batches`, {
+      const response = await fetch(`${BASE_URL}/productBatches`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
