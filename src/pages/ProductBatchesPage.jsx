@@ -27,7 +27,9 @@ const ProductBatchesPage = ({ isDarkMode }) => {
     try {
       setError(null)
       const data = await productsApi.getAll()
-      setProducts(Array.isArray(data) ? data : [])
+      // Filter only active products for batch creation
+      const activeProducts = Array.isArray(data) ? data.filter(product => product.active === true) : []
+      setProducts(activeProducts)
     } catch (error) {
       console.error('Failed to fetch products:', error)
       setError(error.message || 'Failed to fetch products')

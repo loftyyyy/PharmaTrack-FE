@@ -5,10 +5,13 @@ const AllProductsPage = ({ isDarkMode }) => {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
@@ -69,35 +72,85 @@ const AllProductsPage = ({ isDarkMode }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const dto = {
-      name: formData.name,
-      brand: formData.brand,
-      manufacturer: formData.manufacturer,
-      dosageForm: formData.dosageForm,
-      strength: formData.strength,
-      minimumStock: parseInt(formData.minimumStock),
-      drugClassification: formData.drugClassification,
-      description: formData.description,
-      categoryId: parseInt(formData.category),
-      barcode: formData.barcode,
-      active: editingProduct ? formData.active : true, // New products are always active
-    }
+    
+    setSubmitting(true)
+    setError(null)
+    setSuccess(null)
+    
     try {
+      const dto = {
+        name: formData.name,
+        brand: formData.brand,
+        manufacturer: formData.manufacturer,
+        dosageForm: formData.dosageForm,
+        strength: formData.strength,
+        minimumStock: parseInt(formData.minimumStock),
+        drugClassification: formData.drugClassification,
+        description: formData.description,
+        categoryId: parseInt(formData.category),
+        barcode: formData.barcode,
+        active: editingProduct ? formData.active : true, // New products are always active
+      }
+      
       if (editingProduct) {
         await productsApi.update(editingProduct.id, dto)
+        setSuccess('Product updated successfully!')
       } else {
         await productsApi.create(dto)
+        setSuccess('Product created successfully!')
       }
+      
       await fetchProducts() // Refresh products list
-      resetForm()
+      
+      // Close modal and reset form, but keep success message visible
+      setShowAddModal(false)
+      setEditingProduct(null)
+      setFormData({
+        name: '',
+        brand: '',
+        manufacturer: '',
+        dosageForm: '',
+        strength: '',
+        minimumStock: '',
+        drugClassification: '',
+        description: '',
+        category: '',
+        barcode: '',
+        active: true,
+      })
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
-      alert(err.message || 'Failed to save product')
+      console.error('Failed to save product:', err)
+      setError(err.message || 'Failed to save product. Please try again.')
+      
+      // Close modal immediately on error so user can see the error message
+      setShowAddModal(false)
+      setEditingProduct(null)
+      setFormData({
+        name: '',
+        brand: '',
+        manufacturer: '',
+        dosageForm: '',
+        strength: '',
+        minimumStock: '',
+        drugClassification: '',
+        description: '',
+        category: '',
+        barcode: '',
+        active: true,
+      })
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const resetForm = () => {
     setShowAddModal(false)
     setEditingProduct(null)
+    setError(null)
+    // Don't clear success message here - let it auto-hide
     setFormData({
       name: '',
       brand: '',
@@ -174,7 +227,11 @@ const AllProductsPage = ({ isDarkMode }) => {
         </div>
         <div className="flex space-x-3">
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setError(null)
+              setSuccess(null)
+              setShowAddModal(true)
+            }}
             className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
           >
             <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,6 +241,46 @@ const AllProductsPage = ({ isDarkMode }) => {
           </button>
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {error}
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-700 hover:text-red-900"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {success && (
+        <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            {success}
+            <button
+              onClick={() => setSuccess(null)}
+              className="ml-auto text-green-700 hover:text-green-900"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -684,9 +781,24 @@ const AllProductsPage = ({ isDarkMode }) => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+                  disabled={submitting}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    submitting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg'
+                  }`}
                 >
-                  {editingProduct ? 'Update' : 'Add'} Product
+                  {submitting ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {editingProduct ? 'Updating...' : 'Adding...'}
+                    </span>
+                  ) : (
+                    `${editingProduct ? 'Update' : 'Add'} Product`
+                  )}
                 </button>
               </div>
             </form>
