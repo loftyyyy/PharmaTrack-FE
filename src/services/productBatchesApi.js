@@ -1,7 +1,7 @@
 // Product Batches API Service
-// Replace these mock functions with actual backend API calls
+// Backend is ready - using actual API endpoints
 
-const BASE_URL = 'http://localhost:8080/api/v1' // Update this URL to match your backend
+const BASE_URL = 'http://localhost:8080/api/v1'
 
 export const productBatchesApi = {
   // Get all batches for a specific product
@@ -19,21 +19,34 @@ export const productBatchesApi = {
   // Create a new product batch
   create: async (batchData) => {
     try {
+      const token = localStorage.getItem('pharma_token')
+      console.log('🔑 Using token for create batch:', token ? `${token.substring(0, 20)}...` : 'No token found')
+      console.log('📤 Sending batch data:', JSON.stringify(batchData, null, 2))
+      
       const response = await fetch(`${BASE_URL}/productBatches/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(batchData)
       })
       
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = await response.json()
+          console.log('📄 Backend error response:', errorData)
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch (parseError) {
+          console.log('Could not parse error response:', parseError)
+        }
+        throw new Error(errorMessage)
       }
       
-      return await response.json()
+      const result = await response.json()
+      console.log('✅ Batch created successfully:', result)
+      return result
     } catch (error) {
       console.error('Failed to create product batch:', error)
       throw error
@@ -47,7 +60,7 @@ export const productBatchesApi = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
         }
       })
       
@@ -69,7 +82,7 @@ export const productBatchesApi = {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
         },
         body: JSON.stringify(batchData)
       })
@@ -86,8 +99,6 @@ export const productBatchesApi = {
     }
   },
 
-
-
   // Get all batches (for admin purposes)
   getAll: async () => {
     try {
@@ -95,7 +106,7 @@ export const productBatchesApi = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
         }
       })
       
