@@ -35,18 +35,25 @@ const ProductBatchesPage = ({ isDarkMode }) => {
     }
   }
 
-  // Fetch batches from API
-  const fetchBatches = async () => {
-    try {
-      setError(null)
-      const data = await productBatchesApi.getAll()
-      setBatches(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Failed to fetch batches:', error)
-      setError(error.message || 'Failed to fetch batches')
-      setBatches([])
-    }
-  }
+     // Fetch batches from API
+   const fetchBatches = async () => {
+     try {
+       setError(null)
+       const data = await productBatchesApi.getAll()
+       console.log('📥 Raw data from fetchBatches:', data)
+       console.log('🔍 First batch structure:', data?.[0])
+               console.log('🏷️ Status fields in first batch:', data?.[0] ? {
+          status: data[0].status,
+          hasStatus: 'status' in (data[0] || {})
+        } : 'No batches')
+       
+       setBatches(Array.isArray(data) ? data : [])
+     } catch (error) {
+       console.error('Failed to fetch batches:', error)
+       setError(error.message || 'Failed to fetch batches')
+       setBatches([])
+     }
+   }
 
   // Helper function to format product display
   const formatProductDisplay = (product) => {
@@ -112,35 +119,61 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                        console.log('🎯 Operation type:', editingBatch ? 'UPDATE' : 'CREATE')
             console.log('🏷️ Status being sent:', editingBatch ? batchData.batchStatus : 'Backend handles automatically')
           
-          if (editingBatch) {
-            // Update existing batch
-            const updatedBatch = await productBatchesApi.update(editingBatch.id, batchData)
-            setBatches(batches.map(batch => 
-              batch.id === editingBatch.id ? updatedBatch : batch
-            ))
-            setSuccess('Batch updated successfully!')
-            
-            // Close modal and reset form on success
-            setShowAddModal(false)
-            setEditingBatch(null)
-            setFormData({
-              batchNumber: '',
-              productId: '',
-              manufacturingDate: '',
-              expiryDate: '',
-              quantity: '',
-              costPerUnit: '',
-              location: '',
-              status: 'AVAILABLE'
-            })
-            
-            // Auto-hide success message after 3 seconds
-            setTimeout(() => setSuccess(null), 3000)
+                     if (editingBatch) {
+             // Update existing batch - use the correct ID field
+             const batchId = editingBatch.productBatchId || editingBatch.id
+             console.log('🔍 Updating batch with ID:', batchId, 'editingBatch:', editingBatch)
+             
+             const updatedBatch = await productBatchesApi.update(batchId, batchData)
+             
+                          // Debug: Log the updated batch response
+             console.log('🔍 Backend response for updated batch:', updatedBatch)
+             console.log('🔍 Backend response keys:', Object.keys(updatedBatch))
+             console.log('🏷️ Status fields in updated response:', {
+               status: updatedBatch.status,
+               hasStatus: 'status' in updatedBatch
+             })
+             
+             // Instead of manually updating the local state, refresh from backend to ensure consistency
+             await fetchBatches()
+             
+             // Debug: Log what we got after refresh
+             console.log('🔄 After refresh - all batches:', batches)
+             console.log('🔍 Updated batch after refresh:', batches.find(b => (b.productBatchId || b.id) === batchId))
+             
+             setSuccess('Batch updated successfully!')
+             
+             // Close modal and reset form on success
+             setShowAddModal(false)
+             setEditingBatch(null)
+             setFormData({
+               batchNumber: '',
+               productId: '',
+               manufacturingDate: '',
+               expiryDate: '',
+               quantity: '',
+               costPerUnit: '',
+               location: '',
+               status: 'AVAILABLE'
+             })
+             
+             // Auto-hide success message after 3 seconds
+             setTimeout(() => setSuccess(null), 3000)
           } else {
-            // Add new batch
-            const newBatch = await productBatchesApi.create(batchData)
-            // Transform backend response to match frontend structure for consistency
-                         const transformedBatch = {
+                         // Add new batch
+             const newBatch = await productBatchesApi.create(batchData)
+             
+             // Debug: Log the backend response to see what fields are available
+             console.log('🔍 Backend response for new batch:', newBatch)
+             console.log('🏷️ Status fields in response:', {
+               batchStatus: newBatch.batchStatus,
+               status: newBatch.status,
+               hasBatchStatus: 'batchStatus' in newBatch,
+               hasStatus: 'status' in newBatch
+             })
+             
+             // Transform backend response to match frontend structure for consistency
+             const transformedBatch = {
                id: newBatch.productBatchId || newBatch.id,
                batchNumber: newBatch.batchNumber,
                productId: newBatch.product?.id || newBatch.productId,
@@ -150,8 +183,8 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                quantity: newBatch.quantity,
                costPerUnit: newBatch.purchasePricePerUnit || newBatch.costPerUnit,
                location: newBatch.location,
-               // New batches should always show AVAILABLE status
-               status: 'AVAILABLE'
+               // Use the status from backend response, fallback to AVAILABLE
+               status: newBatch.batchStatus || newBatch.status || 'AVAILABLE'
              }
             setBatches([...batches, transformedBatch])
             setSuccess('Batch created successfully!')
@@ -195,32 +228,48 @@ const ProductBatchesPage = ({ isDarkMode }) => {
         }
      }
 
-  const handleEdit = (batch) => {
-    setEditingBatch(batch)
-    
-    // Convert backend date format to frontend format for form inputs
-    const convertDateForForm = (dateValue) => {
-      if (Array.isArray(dateValue)) {
-        const [year, month, day] = dateValue
-        // Month is 0-indexed in Date constructor, so subtract 1
-        const date = new Date(year, month - 1, day)
-        return date.toISOString().split('T')[0] // Returns YYYY-MM-DD format
-      }
-      return dateValue
-    }
-    
-    setFormData({
-      batchNumber: batch.batchNumber,
-      productId: (batch.product?.id || batch.productId)?.toString() || '',
-      manufacturingDate: convertDateForForm(batch.manufacturingDate),
-      expiryDate: convertDateForForm(batch.expiryDate),
-      quantity: batch.quantity.toString(),
-      costPerUnit: (batch.purchasePricePerUnit || batch.costPerUnit).toString(),
-      location: batch.location || '',
-      status: batch.batchStatus || batch.status || 'AVAILABLE'
-    })
-    setShowAddModal(true)
-  }
+     const handleEdit = (batch) => {
+     // Debug: Log the batch object being edited
+     console.log('🔍 Editing batch object:', batch)
+     console.log('🏷️ Batch ID fields:', {
+       productBatchId: batch.productBatchId,
+       id: batch.id,
+       hasProductBatchId: 'productBatchId' in batch,
+       hasId: 'id' in batch
+     })
+     
+     setEditingBatch(batch)
+     
+     // Convert backend date format to frontend format for form inputs
+     const convertDateForForm = (dateValue) => {
+       if (Array.isArray(dateValue)) {
+         const [year, month, day] = dateValue
+         // Month is 0-indexed in Date constructor, so subtract 1
+         const date = new Date(year, month - 1, day)
+         return date.toISOString().split('T')[0] // Returns YYYY-MM-DD format
+       }
+       return dateValue
+     }
+     
+                       // Debug: Log what status is being loaded into the form
+       const formStatus = batch.status || 'AVAILABLE'
+       console.log('🏷️ Loading status into form:', {
+         originalStatus: batch.status,
+         finalFormStatus: formStatus
+       })
+      
+      setFormData({
+        batchNumber: batch.batchNumber,
+        productId: (batch.product?.id || batch.productId)?.toString() || '',
+        manufacturingDate: convertDateForForm(batch.manufacturingDate),
+        expiryDate: convertDateForForm(batch.expiryDate),
+        quantity: batch.quantity.toString(),
+        costPerUnit: (batch.purchasePricePerUnit || batch.costPerUnit).toString(),
+        location: batch.location || '',
+        status: formStatus
+      })
+     setShowAddModal(true)
+   }
 
 
 
@@ -444,8 +493,8 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                                          </td>
                                          <td className="px-6 py-4 whitespace-nowrap">
                        <div className="text-sm">
-                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(batch.batchStatus || batch.status)}`}>
-                           {batch.batchStatus || batch.status || 'Unknown'}
+                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(batch.status)}`}>
+                           {batch.status || 'AVAILABLE'}
                          </span>
                        </div>
                      </td>
