@@ -1,81 +1,35 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { stockLevelsApi } from '../services/stockLevelsApi'
 
 const StockLevelsPage = ({ isDarkMode }) => {
   const { user, apiRequest } = useAuth()
   const [stockItems, setStockItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all') // all, low, out, overstocked
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Mock data for now
-  useEffect(() => {
-    const mockStockItems = [
-      {
-        id: 1,
-        productName: 'Paracetamol 500mg',
-        category: 'Analgesics',
-        currentStock: 150,
-        minStock: 100,
-        maxStock: 1000,
-        unit: 'tablets',
-        location: 'A1-B2',
-        lastUpdated: '2024-01-15T10:30:00',
-        status: 'normal'
-      },
-      {
-        id: 2,
-        productName: 'Amoxicillin 250mg',
-        category: 'Antibiotics',
-        currentStock: 25,
-        minStock: 50,
-        maxStock: 500,
-        unit: 'capsules',
-        location: 'B2-C3',
-        lastUpdated: '2024-01-14T14:20:00',
-        status: 'low'
-      },
-      {
-        id: 3,
-        productName: 'Vitamin C 1000mg',
-        category: 'Vitamins',
-        currentStock: 0,
-        minStock: 30,
-        maxStock: 300,
-        unit: 'tablets',
-        location: 'C1-D2',
-        lastUpdated: '2024-01-13T09:15:00',
-        status: 'out'
-      },
-      {
-        id: 4,
-        productName: 'Ibuprofen 400mg',
-        category: 'Analgesics',
-        currentStock: 1200,
-        minStock: 100,
-        maxStock: 800,
-        unit: 'tablets',
-        location: 'A2-B1',
-        lastUpdated: '2024-01-16T16:45:00',
-        status: 'overstocked'
-      },
-      {
-        id: 5,
-        productName: 'Cough Syrup',
-        category: 'Respiratory',
-        currentStock: 75,
-        minStock: 20,
-        maxStock: 200,
-        unit: 'bottles',
-        location: 'D1-E2',
-        lastUpdated: '2024-01-15T11:30:00',
-        status: 'normal'
-      }
-    ]
-    setTimeout(() => {
-      setStockItems(mockStockItems)
+  // Fetch stock levels from API
+  const fetchStockLevels = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await stockLevelsApi.getAll()
+      console.log('📥 Stock levels data:', data)
+      setStockItems(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Failed to fetch stock levels:', error)
+      setError(error.message || 'Failed to fetch stock levels')
+      setStockItems([])
+    } finally {
       setLoading(false)
-    }, 500)
+    }
+  }
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchStockLevels()
   }, [])
 
   const getStockStatus = (item) => {
@@ -140,7 +94,34 @@ const StockLevelsPage = ({ isDarkMode }) => {
             Monitor and manage inventory stock levels
           </p>
         </div>
+        <button
+          onClick={fetchStockLevels}
+          disabled={loading}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            loading
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-pharma-teal text-white hover:bg-pharma-medium'
+          }`}
+        >
+          {loading ? '🔄 Loading...' : '🔄 Refresh'}
+        </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="flex items-center">
+            <span className="mr-2">❌</span>
+            <span>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-500 hover:text-red-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stock Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
