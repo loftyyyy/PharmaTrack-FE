@@ -1,7 +1,6 @@
 // Stock Levels API Service
-// Aggregates data from products and product batches to calculate stock levels
+// Aggregates data from product batches to calculate stock levels
 
-import { products as productsApi } from './api'
 import { productBatchesApi } from './productBatchesApi'
 
 const BASE_URL = 'http://localhost:8080/api/v1'
@@ -10,74 +9,67 @@ export const stockLevelsApi = {
   // Get all stock levels with aggregated data
   getAll: async () => {
     try {
-      const token = localStorage.getItem('pharma_token')
+      // Fetch all product batches (which include product information)
+      const batches = await productBatchesApi.getAll()
       
-      // Fetch products and batches in parallel
-      const [products, batches] = await Promise.all([
-        productsApi.getAll(),
-        productBatchesApi.getAll()
-      ])
-
-      // Create a map of product batches by product ID
-      const batchesByProduct = batches.reduce((acc, batch) => {
+      // Group batches by product ID to calculate stock levels
+      const stockLevelsByProduct = batches.reduce((acc, batch) => {
         const productId = batch.product?.id || batch.productId
+        
         if (!acc[productId]) {
-          acc[productId] = []
+          // Initialize stock level for this product
+          acc[productId] = {
+            id: productId,
+            productName: batch.product?.name || 'Unknown Product',
+            category: batch.product?.category?.name || 'Uncategorized',
+            currentStock: 0,
+            minStock: batch.product?.minimumStock || 0,
+            unit: batch.product?.unit || 'units',
+            location: batch.location || batch.product?.location || 'N/A',
+            lastUpdated: null,
+            status: 'normal',
+            product: batch.product,
+            batches: []
+          }
         }
-        acc[productId].push(batch)
+        
+        // Add this batch to the product's batch list
+        acc[productId].batches.push(batch)
+        
+        // Add to current stock if batch is available
+        if (batch.status) {
+          acc[productId].currentStock += batch.quantity || 0
+        }
+        
+        // Update last updated timestamp
+        const batchDate = batch.createdAt || batch.manufacturingDate
+        if (batchDate) {
+          const batchTime = new Date(batchDate).getTime()
+          if (!acc[productId].lastUpdated || batchTime > acc[productId].lastUpdated) {
+            acc[productId].lastUpdated = batchTime
+          }
+        }
+        
         return acc
       }, {})
-
-      // Calculate stock levels for each product
-      const stockLevels = products.map(product => {
-        const productBatches = batchesByProduct[product.id] || []
-        
-        // Calculate current stock (sum of all available batches)
-        const currentStock = productBatches
-          .filter(batch => batch.batchStatus === 'AVAILABLE' || batch.status === 'AVAILABLE')
-          .reduce((sum, batch) => sum + (batch.quantity || 0), 0)
-        
-        // Get min and max stock from product
-        const minStock = product.minStock || 0
-        const maxStock = product.maxStock || 1000
-        
+      
+      // Convert to array and calculate status for each product
+      const stockLevels = Object.values(stockLevelsByProduct).map(item => {
         // Determine stock status
         let status = 'normal'
-        if (currentStock === 0) {
+        if (item.currentStock === 0) {
           status = 'out'
-        } else if (currentStock < minStock) {
+        } else if (item.currentStock < item.minStock) {
           status = 'low'
-        } else if (currentStock > maxStock) {
-          status = 'overstocked'
         }
         
-        // Get location from the first available batch, or use product location
-        const firstAvailableBatch = productBatches.find(batch => 
-          batch.batchStatus === 'AVAILABLE' || batch.status === 'AVAILABLE'
-        )
-        const location = firstAvailableBatch?.location || product.location || 'N/A'
-        
-        // Get last updated from the most recent batch
-        const lastUpdated = productBatches.length > 0 
-          ? Math.max(...productBatches.map(batch => new Date(batch.createdAt || batch.manufacturingDate).getTime()))
-          : new Date().getTime()
-
         return {
-          id: product.id,
-          productName: product.name,
-          category: product.category?.name || 'Uncategorized',
-          currentStock,
-          minStock,
-          maxStock,
-          unit: product.unit || 'units',
-          location,
-          lastUpdated: new Date(lastUpdated).toISOString(),
+          ...item,
           status,
-          product: product,
-          batches: productBatches
+          lastUpdated: item.lastUpdated ? new Date(item.lastUpdated).toISOString() : new Date().toISOString()
         }
       })
-
+      
       return stockLevels
     } catch (error) {
       console.error('Failed to fetch stock levels:', error)
@@ -121,7 +113,6 @@ export const stockLevelsApi = {
         normal: allStockLevels.filter(item => item.status === 'normal').length,
         low: allStockLevels.filter(item => item.status === 'low').length,
         out: allStockLevels.filter(item => item.status === 'out').length,
-        overstocked: allStockLevels.filter(item => item.status === 'overstocked').length,
         totalValue: allStockLevels.reduce((sum, item) => {
           const avgPrice = item.product?.sellingPrice || 0
           return sum + (item.currentStock * avgPrice)

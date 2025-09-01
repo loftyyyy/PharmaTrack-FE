@@ -107,7 +107,7 @@ class ApiService {
     create: (userData) => this.post('/v1/users', userData), // { username, password, role }
     update: (id, userData) => this.put(`/v1/users/${id}`, userData),
     delete: (id) => this.delete(`/v1/users/${id}`),
-  },
+  }
 
   // Product/Inventory management endpoints (v1 API - requires Authorization)
   products = {
@@ -124,10 +124,12 @@ class ApiService {
     // updateStock: (id, quantity) => this.patch(`/api/v1/products/${id}/stock`, { quantity }),
     // getLowStock: () => this.get('/api/v1/products/low-stock'),
     // getExpiringSoon: () => this.get('/api/v1/products/expiring-soon'),
-  },
+  }
 
   // Keep inventory as alias for backward compatibility
-  inventory = this.products
+  get inventory() {
+    return this.products
+  }
 
   // Customer/Orders endpoints (v1 API - requires Authorization)
   customers = {
@@ -140,7 +142,7 @@ class ApiService {
     update: (id, customerData) => this.put(`/v1/customers/${id}`, customerData),
     delete: (id) => this.delete(`/v1/customers/${id}`),
     getOrders: (id) => this.get(`/v1/customers/${id}/orders`),
-  },
+  }
 
   // Orders endpoints (v1 API - requires Authorization)
   orders = {
@@ -155,7 +157,7 @@ class ApiService {
     updateStatus: (id, status) => this.patch(`/v1/orders/${id}/status`, { status }),
     getByStatus: (status) => this.get(`/v1/orders/status/${status}`),
     getByCustomer: (customerId) => this.get(`/v1/orders/customer/${customerId}`),
-  },
+  }
 
   // Categories endpoints (v1 API - requires Authorization)
   categories = {
@@ -163,7 +165,7 @@ class ApiService {
     getById: (id) => this.get(`/api/v1/categories/${id}`),
     create: (categoryData) => this.post('/api/v1/categories/create', categoryData),
     update: (id, categoryData) => this.put(`/api/v1/categories/${id}`, categoryData),
-  },
+  }
 
   // Suppliers endpoints (v1 API - requires Authorization)
   suppliers = {
@@ -172,7 +174,7 @@ class ApiService {
     create: (supplierData) => this.post('/v1/suppliers', supplierData),
     update: (id, supplierData) => this.put(`/v1/suppliers/${id}`, supplierData),
     delete: (id) => this.delete(`/v1/suppliers/${id}`),
-  },
+  }
 
   // Dashboard/Analytics endpoints (v1 API - requires Authorization)
   dashboard = {

@@ -7,7 +7,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
   const [stockItems, setStockItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [filter, setFilter] = useState('all') // all, low, out, overstocked
+  const [filter, setFilter] = useState('all') // all, low, out
   const [searchTerm, setSearchTerm] = useState('')
 
   // Fetch stock levels from API
@@ -35,7 +35,6 @@ const StockLevelsPage = ({ isDarkMode }) => {
   const getStockStatus = (item) => {
     if (item.currentStock === 0) return 'out'
     if (item.currentStock < item.minStock) return 'low'
-    if (item.currentStock > item.maxStock) return 'overstocked'
     return 'normal'
   }
 
@@ -44,7 +43,6 @@ const StockLevelsPage = ({ isDarkMode }) => {
       case 'normal': return 'bg-green-100 text-green-800'
       case 'low': return 'bg-yellow-100 text-yellow-800'
       case 'out': return 'bg-red-100 text-red-800'
-      case 'overstocked': return 'bg-blue-100 text-blue-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -54,7 +52,6 @@ const StockLevelsPage = ({ isDarkMode }) => {
       case 'normal': return '✅'
       case 'low': return '⚠️'
       case 'out': return '❌'
-      case 'overstocked': return '📈'
       default: return '❓'
     }
   }
@@ -70,8 +67,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
     total: stockItems.length,
     normal: stockItems.filter(item => getStockStatus(item) === 'normal').length,
     low: stockItems.filter(item => getStockStatus(item) === 'low').length,
-    out: stockItems.filter(item => getStockStatus(item) === 'out').length,
-    overstocked: stockItems.filter(item => getStockStatus(item) === 'overstocked').length
+    out: stockItems.filter(item => getStockStatus(item) === 'out').length
   }
 
   if (loading) {
@@ -155,28 +151,18 @@ const StockLevelsPage = ({ isDarkMode }) => {
           </div>
         </div>
 
-        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Out of Stock</p>
-              <p className="text-2xl font-bold text-red-600">{stockSummary.out}</p>
-            </div>
-            <div className="text-2xl">❌</div>
-          </div>
-        </div>
+                 <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+           <div className="flex items-center justify-between">
+             <div>
+               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Out of Stock</p>
+               <p className="text-2xl font-bold text-red-600">{stockSummary.out}</p>
+             </div>
+             <div className="text-2xl">❌</div>
+           </div>
+         </div>
+       </div>
 
-        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Overstocked</p>
-              <p className="text-2xl font-bold text-blue-600">{stockSummary.overstocked}</p>
-            </div>
-            <div className="text-2xl">📈</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters and Search */}
+       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
           <input
@@ -196,8 +182,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
             { key: 'all', label: 'All', icon: '📦' },
             { key: 'normal', label: 'Normal', icon: '✅' },
             { key: 'low', label: 'Low Stock', icon: '⚠️' },
-            { key: 'out', label: 'Out of Stock', icon: '❌' },
-            { key: 'overstocked', label: 'Overstocked', icon: '📈' }
+            { key: 'out', label: 'Out of Stock', icon: '❌' }
           ].map((filterOption) => (
             <button
               key={filterOption.key}
@@ -279,11 +264,10 @@ const StockLevelsPage = ({ isDarkMode }) => {
                           className={`h-2 rounded-full ${
                             status === 'out' ? 'bg-red-500' :
                             status === 'low' ? 'bg-yellow-500' :
-                            status === 'overstocked' ? 'bg-blue-500' :
                             'bg-green-500'
                           }`}
                           style={{ 
-                            width: `${Math.min((item.currentStock / item.maxStock) * 100, 100)}%` 
+                            width: `${Math.min((item.currentStock / Math.max(item.minStock, 1)) * 100, 100)}%` 
                           }}
                         ></div>
                       </div>
@@ -291,7 +275,6 @@ const StockLevelsPage = ({ isDarkMode }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
                         <div>Min: {item.minStock} {item.unit}</div>
-                        <div>Max: {item.maxStock} {item.unit}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
