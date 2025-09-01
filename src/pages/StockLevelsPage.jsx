@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
 import { stockLevelsApi } from '../services/stockLevelsApi'
 
 const StockLevelsPage = ({ isDarkMode }) => {
-  const { user, apiRequest } = useAuth()
   const [stockItems, setStockItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all') // all, low, out
   const [searchTerm, setSearchTerm] = useState('')
@@ -14,6 +13,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
   const fetchStockLevels = async () => {
     try {
       setLoading(true)
+      setRefreshing(true)
       setError(null)
       const data = await stockLevelsApi.getAll()
       console.log('📥 Stock levels data:', data)
@@ -24,6 +24,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
       setStockItems([])
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -92,14 +93,21 @@ const StockLevelsPage = ({ isDarkMode }) => {
         </div>
         <button
           onClick={fetchStockLevels}
-          disabled={loading}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            loading
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-pharma-teal text-white hover:bg-pharma-medium'
+          disabled={loading || refreshing}
+          className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
+            loading || refreshing
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:shadow-lg'
+          } ${
+            isDarkMode
+              ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
           }`}
         >
-          {loading ? '🔄 Loading...' : '🔄 Refresh'}
+          <svg className={`w-5 h-5 inline mr-2 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
@@ -238,7 +246,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-500'
                 }`}>
-                  Last Updated
+                  Created
                 </th>
               </tr>
             </thead>
@@ -286,7 +294,50 @@ const StockLevelsPage = ({ isDarkMode }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(item.lastUpdated).toLocaleDateString()}
+                      {(() => {
+                        if (!item.batches || item.batches.length === 0) return 'N/A'
+                        const batch = item.batches[0]
+                        console.log('🔍 Batch data:', batch)
+                        console.log('📅 createdAt value:', batch.createdAt)
+                        console.log('📅 createdAt type:', typeof batch.createdAt)
+                        
+                        if (!batch.createdAt) return 'N/A'
+                        
+                        try {
+                          // Handle LocalDateTime format from Spring Boot backend
+                          let dateString = batch.createdAt
+                          
+                          // If it's an array with date/time components [year, month, day, hour, minute, second]
+                          if (Array.isArray(dateString)) {
+                            const [year, month, day, hour = 0, minute = 0, second = 0] = dateString
+                            // Note: month is 0-indexed in JavaScript Date, but Spring Boot sends 1-indexed
+                            dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}`
+                          }
+                          // If it's an object with date/time properties, construct the string
+                          else if (typeof dateString === 'object' && dateString !== null) {
+                            // Handle LocalDateTime object format
+                            if (dateString.date && dateString.time) {
+                              dateString = `${dateString.date}T${dateString.time}`
+                            } else if (dateString.year && dateString.monthValue && dateString.dayOfMonth) {
+                              // Handle LocalDateTime with individual components
+                              const month = dateString.monthValue.toString().padStart(2, '0')
+                              const day = dateString.dayOfMonth.toString().padStart(2, '0')
+                              const hour = (dateString.hour || 0).toString().padStart(2, '0')
+                              const minute = (dateString.minute || 0).toString().padStart(2, '0')
+                              const second = (dateString.second || 0).toString().padStart(2, '0')
+                              dateString = `${dateString.year}-${month}-${day}T${hour}:${minute}:${second}`
+                            }
+                          }
+                          
+                          const date = new Date(dateString)
+                          console.log('📅 Parsed date:', date)
+                          if (isNaN(date.getTime())) return 'N/A'
+                          return date.toLocaleDateString()
+                        } catch {
+                          console.error('Invalid date format:', batch.createdAt)
+                          return 'N/A'
+                        }
+                      })()}
                     </td>
                   </tr>
                 )
