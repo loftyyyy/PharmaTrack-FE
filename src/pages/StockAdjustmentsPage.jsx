@@ -1,6 +1,48 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 
+// Simple professional-looking inline SVG icons (no external deps)
+const IconChartBars = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 21h18" />
+    <rect x="6" y="10" width="3" height="7" rx="1" />
+    <rect x="11" y="6" width="3" height="11" rx="1" />
+    <rect x="16" y="13" width="3" height="4" rx="1" />
+  </svg>
+)
+
+const IconPlusCircle = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 8v8M8 12h8" />
+  </svg>
+)
+
+const IconMinusCircle = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8 12h8" />
+  </svg>
+)
+
+const IconAdjustments = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="6" y1="5" x2="6" y2="19" />
+    <circle cx="6" cy="9" r="1.5" fill="currentColor" stroke="none" />
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none" />
+    <line x1="18" y1="5" x2="18" y2="19" />
+    <circle cx="18" cy="8" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+const IconArrowRight = ({ className = '' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 12h14" />
+    <path d="M13 6l6 6-6 6" />
+  </svg>
+)
+
 const StockAdjustmentsPage = ({ isDarkMode }) => {
   const { user, apiRequest } = useAuth()
   const [adjustments, setAdjustments] = useState([])
@@ -202,10 +244,14 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
 
   const getTypeIcon = (type) => {
     switch (type) {
-      case 'addition': return '+'
-      case 'reduction': return '-'
-      case 'correction': return '⚖️'
-      default: return '?'
+      case 'addition':
+        return <IconPlusCircle className="w-4 h-4 mr-1" />
+      case 'reduction':
+        return <IconMinusCircle className="w-4 h-4 mr-1" />
+      case 'correction':
+        return <IconAdjustments className="w-4 h-4 mr-1" />
+      default:
+        return null
     }
   }
 
@@ -257,7 +303,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Adjustments</p>
               <p className="text-2xl font-bold">{adjustments.length}</p>
             </div>
-            <div className="text-2xl">📊</div>
+            <IconChartBars className={`w-7 h-7 ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`} />
           </div>
         </div>
 
@@ -269,7 +315,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 {adjustments.filter(a => a.type === 'addition').length}
               </p>
             </div>
-            <div className="text-2xl">➕</div>
+            <IconPlusCircle className="w-7 h-7 text-green-600" />
           </div>
         </div>
 
@@ -281,7 +327,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 {adjustments.filter(a => a.type === 'reduction').length}
               </p>
             </div>
-            <div className="text-2xl">➖</div>
+            <IconMinusCircle className="w-7 h-7 text-red-600" />
           </div>
         </div>
 
@@ -293,7 +339,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 {adjustments.filter(a => a.type === 'correction').length}
               </p>
             </div>
-            <div className="text-2xl">⚖️</div>
+            <IconAdjustments className={`w-7 h-7 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
           </div>
         </div>
       </div>
@@ -399,9 +445,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                         <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                           {adjustment.previousStock}
                         </span>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-                        </svg>
+                        <IconArrowRight className="w-4 h-4 text-gray-400" />
                         <span className="font-medium">
                           {adjustment.newStock}
                         </span>
