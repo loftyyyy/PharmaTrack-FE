@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import apiService from '../services/api'
+import categoriesApi from '../services/categoriesApi'
 
 const CategoriesPage = ({ isDarkMode }) => {
   const { user } = useAuth()
@@ -30,7 +30,7 @@ const CategoriesPage = ({ isDarkMode }) => {
         setLoading(true)
       }
       setError(null)
-      const response = await apiService.categories.getAll()
+      const response = await categoriesApi.getAll()
       setCategories(response || [])
     } catch (err) {
       console.error('Error fetching categories:', err)
@@ -49,7 +49,7 @@ const CategoriesPage = ({ isDarkMode }) => {
       
       if (editingCategory) {
         // Update existing category
-        const updatedCategory = await apiService.categories.update(editingCategory.id, formData)
+        const updatedCategory = await categoriesApi.update(editingCategory.id, formData)
         setCategories(categories.map(cat => 
           cat.id === editingCategory.id ? updatedCategory : cat
         ))
@@ -64,7 +64,7 @@ const CategoriesPage = ({ isDarkMode }) => {
         setTimeout(() => setSuccess(null), 3000)
       } else {
         // Add new category
-        const newCategory = await apiService.categories.create(formData)
+        const newCategory = await categoriesApi.create(formData)
         setCategories([...categories, newCategory])
         setSuccess('Category created successfully!')
         
@@ -253,83 +253,83 @@ const CategoriesPage = ({ isDarkMode }) => {
             </h2>
             
                          <form onSubmit={handleSubmit}>
-               <div className="mb-6">
-                 <label className={`block text-sm font-medium mb-2 ${
-                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                 }`}>
-                   Category Name
-                 </label>
-                 <input
-                   type="text"
-                   required
-                   value={formData.name}
-                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                     isDarkMode
-                       ? 'bg-gray-700 border-gray-600 text-white'
-                       : 'bg-white border-gray-300 text-gray-900'
-                   }`}
-                   placeholder="Enter category name"
-                 />
-               </div>
-               
-                               {editingCategory && (
-                  <div className="mb-6">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.active}
-                        onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                        className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
-                      />
-                      <span className={`ml-2 text-sm ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Active Category
-                      </span>
-                    </label>
-                  </div>
-                )}
-              
-              <div className="flex space-x-3">
-                                 <button
-                   type="button"
-                   onClick={() => {
-                     setShowAddModal(false)
-                     setEditingCategory(null)
-                     setFormData({ name: '', active: true })
-                   }}
-                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                     isDarkMode
-                       ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                       : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                   }`}
-                 >
-                   Cancel
-                 </button>
-                                 <button
-                   type="submit"
-                   disabled={submitting}
-                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
-                     submitting
-                       ? 'opacity-50 cursor-not-allowed bg-gray-400'
-                       : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg'
-                   }`}
-                 >
-                  {submitting ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {editingCategory ? 'Updating...' : 'Adding...'}
-                    </>
-                  ) : (
-                    `${editingCategory ? 'Update' : 'Add'} Category`
-                  )}
-                </button>
+              <div className="mb-6">
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="Enter category name"
+                />
               </div>
-            </form>
+              
+                              {editingCategory && (
+                 <div className="mb-6">
+                   <label className="flex items-center">
+                     <input
+                       type="checkbox"
+                       checked={formData.active}
+                       onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                       className="w-4 h-4 text-pharma-teal bg-gray-100 border-gray-300 rounded focus:ring-pharma-medium focus:ring-2"
+                     />
+                     <span className={`ml-2 text-sm ${
+                       isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                     }`}>
+                       Active Category
+                     </span>
+                   </label>
+                 </div>
+               )}
+             
+             <div className="flex space-x-3">
+                                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setEditingCategory(null)
+                    setFormData({ name: '', active: true })
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    isDarkMode
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  }`}
+                >
+                  Cancel
+                </button>
+                                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    submitting
+                      ? 'opacity-50 cursor-not-allowed bg-gray-400'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg'
+                  }`}
+                >
+                 {submitting ? (
+                   <>
+                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                     </svg>
+                     {editingCategory ? 'Updating...' : 'Adding...'}
+                   </>
+                 ) : (
+                   `${editingCategory ? 'Update' : 'Add'} Category`
+                 )}
+               </button>
+             </div>
+           </form>
           </div>
         </div>
       )}

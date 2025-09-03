@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { products as productsApi, categories as categoriesApi } from '../services/api'
+import productsApi from '../services/productsApi'
+import categoriesApi from '../services/categoriesApi'
 
 const AllProductsPage = ({ isDarkMode }) => {
   const [products, setProducts] = useState([])
@@ -690,7 +691,7 @@ const AllProductsPage = ({ isDarkMode }) => {
                 </div>
                 
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${
+                  <label className={`block text sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
                     Dosage Form *

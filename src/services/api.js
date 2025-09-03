@@ -20,7 +20,6 @@ class ApiService {
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
     const config = {
-      headers: this.getAuthHeaders(),
       ...options,
       headers: {
         ...this.getAuthHeaders(),
@@ -109,28 +108,6 @@ class ApiService {
     delete: (id) => this.delete(`/v1/users/${id}`),
   }
 
-  // Product/Inventory management endpoints (v1 API - requires Authorization)
-  products = {
-    getAll: (params) => {
-      const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-      return this.get(`/api/v1/products${queryString}`)
-    },
-    getById: (id) => this.get(`/api/v1/products/${id}`),
-    // Backend create endpoint is /api/v1/products/create
-    create: (productData) => this.post('/api/v1/products/create', productData),
-    update: (id, productData) => this.put(`/api/v1/products/${id}`, productData),
-    // delete: (id) => this.delete(`/api/v1/products/${id}`),
-    // Optional helpers (uncomment if implemented on backend)
-    // updateStock: (id, quantity) => this.patch(`/api/v1/products/${id}/stock`, { quantity }),
-    // getLowStock: () => this.get('/api/v1/products/low-stock'),
-    // getExpiringSoon: () => this.get('/api/v1/products/expiring-soon'),
-  }
-
-  // Keep inventory as alias for backward compatibility
-  get inventory() {
-    return this.products
-  }
-
   // Customer/Orders endpoints (v1 API - requires Authorization)
   customers = {
     getAll: (params) => {
@@ -157,14 +134,6 @@ class ApiService {
     updateStatus: (id, status) => this.patch(`/v1/orders/${id}/status`, { status }),
     getByStatus: (status) => this.get(`/v1/orders/status/${status}`),
     getByCustomer: (customerId) => this.get(`/v1/orders/customer/${customerId}`),
-  }
-
-  // Categories endpoints (v1 API - requires Authorization)
-  categories = {
-    getAll: () => this.get('/api/v1/categories'),
-    getById: (id) => this.get(`/api/v1/categories/${id}`),
-    create: (categoryData) => this.post('/api/v1/categories/create', categoryData),
-    update: (id, categoryData) => this.put(`/api/v1/categories/${id}`, categoryData),
   }
 
   // Suppliers endpoints (v1 API - requires Authorization)
@@ -222,11 +191,8 @@ export default apiService
 export const {
   auth,
   users,
-  products,
-  inventory, // alias for products
   customers,
   orders,
-  categories,
   suppliers,
   dashboard,
   reports,
