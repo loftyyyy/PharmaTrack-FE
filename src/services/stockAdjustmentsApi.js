@@ -12,12 +12,18 @@ function getAuthHeaders() {
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`
+  const headers = {
+    ...getAuthHeaders(),
+    ...(options.headers || {}),
+  }
+  
+  console.log('🌐 Making request to:', url)
+  console.log('📋 Request headers:', headers)
+  console.log('📦 Request body:', options.body)
+  
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...getAuthHeaders(),
-      ...(options.headers || {}),
-    },
+    headers,
   })
 
   if (!response.ok) {
@@ -43,7 +49,20 @@ const stockAdjustmentsApi = {
     return request(`/api/v1/stockAdjustments${queryString}`, { method: 'GET' })
   },
   getById: (id) => request(`/api/v1/stockAdjustments/${id}`, { method: 'GET' }),
-  create: (dto) => request('/api/v1/stockAdjustments/create', { method: 'POST', body: JSON.stringify(dto) }),
+  create: async (dto) => {
+    const token = localStorage.getItem('pharma_token')
+    console.log('🔑 Using token for create stock adjustment:', token ? `${token.substring(0, 20)}...` : 'No token found')
+    console.log('📤 Sending stock adjustment data:', JSON.stringify(dto, null, 2))
+    
+    try {
+      const result = await request('/api/v1/stockAdjustments/create', { method: 'POST', body: JSON.stringify(dto) })
+      console.log('✅ Stock adjustment created successfully:', result)
+      return result
+    } catch (error) {
+      console.error('❌ Failed to create stock adjustment:', error)
+      throw error
+    }
+  },
 }
 
 export default stockAdjustmentsApi

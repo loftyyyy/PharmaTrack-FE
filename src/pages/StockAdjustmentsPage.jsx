@@ -56,6 +56,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     productId: '',
@@ -94,8 +95,8 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
           quantityChanged: a.quantityChanged,
           reason: a.reason,
           productBatchId: a.productBatchId,
-          adjustedBy: a.adjustedBy || '—',
-          adjustedAt: a.adjustedAt || new Date().toISOString(),
+          adjustedBy: a.createdBy || '—',
+          adjustedAt: a.createdAt ? (Array.isArray(a.createdAt) ? new Date(...a.createdAt).toISOString() : a.createdAt) : new Date().toISOString(),
         })) : []
         setAdjustments(normalized)
       } catch (e) {
@@ -133,24 +134,32 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
     try {
       setSubmitting(true)
       setError(null)
-      const selectedBatch = batches.find(b => String(b.id) === String(formData.productBatchId))
+      const selectedBatch = batches.find(b => String(b.productBatchId || b.id) === String(formData.productBatchId))
       const qtyInput = parseInt(formData.quantity)
       if (!selectedBatch || isNaN(qtyInput)) throw new Error('Please select a batch and enter a valid quantity')
-
-      let quantityChanged = qtyInput
-      if (formData.type === 'IN') quantityChanged = Math.abs(qtyInput)
-      if (formData.type === 'OUT') quantityChanged = -Math.abs(qtyInput)
-      if (formData.type === 'CORRECTION') quantityChanged = qtyInput - (selectedBatch.quantity || 0)
 
       const dto = {
         productId: parseInt(formData.productId),
         productBatchId: parseInt(formData.productBatchId),
-        quantityChanged,
+        quantityChanged: qtyInput,
         adjustmentType: formData.type,
         reason: formData.reason,
       }
 
-      await stockAdjustmentsApi.create(dto)
+      console.log('📋 Frontend DTO being sent:', dto)
+      console.log('🔍 Form data values:', {
+        productId: formData.productId,
+        productBatchId: formData.productBatchId,
+        quantity: formData.quantity,
+        type: formData.type,
+        reason: formData.reason,
+        qtyInput: qtyInput
+      })
+
+      const result = await stockAdjustmentsApi.create(dto)
+      
+      setSuccess('Stock adjustment created successfully!')
+      setError(null)
 
       const refreshed = await stockAdjustmentsApi.getAll().catch(() => [])
       const normalized = Array.isArray(refreshed) ? refreshed.map(a => ({
@@ -158,18 +167,19 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         productId: a.product?.id,
         productName: a.product?.name || 'Unknown Product',
         productSku: a.product?.sku || a.product?.barcode || '—',
-        type: normalizeType(a.changeType || a.adjustmentType),
+        type: normalizeType(a.adjustmentType),
         quantityChanged: a.quantityChanged,
         reason: a.reason,
         productBatchId: a.productBatchId,
-        adjustedBy: a.adjustedBy || '—',
-        adjustedAt: a.adjustedAt || new Date().toISOString(),
+        adjustedBy: a.createdBy || '—',
+        adjustedAt: a.createdAt ? (Array.isArray(a.createdAt) ? new Date(...a.createdAt).toISOString() : a.createdAt) : new Date().toISOString(),
       })) : []
       setAdjustments(normalized)
 
       resetForm()
     } catch (err) {
       setError(err.message || 'Failed to save stock adjustment')
+      setSuccess(null)
     } finally {
       setSubmitting(false)
     }
@@ -185,6 +195,8 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
       quantity: '',
       reason: '',
     })
+    setError(null)
+    setSuccess(null)
   }
 
   const handleEdit = (adjustment) => {
@@ -199,10 +211,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
     setShowAddModal(true)
   }
 
-  const handleDelete = async (adjustmentId) => {
-    // No delete endpoint specified; ideally call API if available. For now, remove locally.
-    setAdjustments(adjustments.filter(adjustment => adjustment.id !== adjustmentId))
-  }
+
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -257,6 +266,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         <div className="flex gap-3 items-center">
           {error && (
             <span className="text-red-500 text-sm">{error}</span>
+          )}
+          {success && (
+            <span className="text-green-500 text-sm">{success}</span>
           )}
           <button
             onClick={() => setShowAddModal(true)}
@@ -375,11 +387,6 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 }`}>
                   Adjusted By
                 </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-500'
-                }`}>
-                  Actions
-                </th>
               </tr>
             </thead>
             <tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
@@ -415,22 +422,6 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                       <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                         {adjustment.adjustedAt ? new Date(adjustment.adjustedAt).toLocaleString() : '—'}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(adjustment)}
-                        className="text-pharma-teal hover:text-pharma-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(adjustment.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -512,8 +503,8 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                       <>
                         <option value="">Select Batch</option>
                         {batches.map((batch) => (
-                          <option key={batch.id} value={batch.id}>
-                            {batch.batchNumber || `Batch #${batch.id}`} • Qty: {batch.quantity ?? '0'}
+                          <option key={batch.productBatchId || batch.id} value={batch.productBatchId || batch.id}>
+                            {batch.batchNumber || `Batch #${batch.productBatchId || batch.id}`} • Qty: {batch.quantity ?? '0'}
                           </option>
                         ))}
                         {batches.length === 0 && (
