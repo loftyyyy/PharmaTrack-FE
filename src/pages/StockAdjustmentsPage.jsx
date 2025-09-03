@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import productsApi from '../services/productsApi'
+import { productBatchesApi } from '../services/productBatchesApi'
+import stockAdjustmentsApi from '../services/stockAdjustmentsApi'
 
 // Simple professional-looking inline SVG icons (no external deps)
 const IconChartBars = ({ className = '' }) => (
@@ -44,161 +47,127 @@ const IconArrowRight = ({ className = '' }) => (
 )
 
 const StockAdjustmentsPage = ({ isDarkMode }) => {
-  const { user, apiRequest } = useAuth()
+  const { user } = useAuth()
   const [adjustments, setAdjustments] = useState([])
   const [products, setProducts] = useState([])
+  const [batches, setBatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingAdjustment, setEditingAdjustment] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     productId: '',
+    productBatchId: '',
     type: 'addition',
     quantity: '',
     reason: '',
-    reference: '',
-    notes: ''
   })
 
-  // Mock products data
-  const mockProducts = [
-    { id: 1, name: 'Paracetamol 500mg', sku: 'PARA500', currentStock: 150, unit: 'tablets' },
-    { id: 2, name: 'Amoxicillin 250mg', sku: 'AMOX250', currentStock: 25, unit: 'capsules' },
-    { id: 3, name: 'Vitamin C 1000mg', sku: 'VITC1000', currentStock: 0, unit: 'tablets' },
-    { id: 4, name: 'Ibuprofen 400mg', sku: 'IBU400', currentStock: 200, unit: 'tablets' },
-    { id: 5, name: 'Cough Syrup', sku: 'COUGH001', currentStock: 75, unit: 'bottles' }
-  ]
-
-  // Mock adjustments data
   useEffect(() => {
-    const mockAdjustments = [
-      {
-        id: 1,
-        productId: 1,
-        productName: 'Paracetamol 500mg',
-        productSku: 'PARA500',
-        type: 'addition',
-        quantity: 100,
-        previousStock: 50,
-        newStock: 150,
-        reason: 'Stock replenishment',
-        reference: 'PO-2024-001',
-        notes: 'Received from supplier',
-        adjustedBy: 'Dr. Sarah Wilson',
-        adjustedAt: '2024-01-20T10:30:00',
-        status: 'completed'
-      },
-      {
-        id: 2,
-        productId: 2,
-        productName: 'Amoxicillin 250mg',
-        productSku: 'AMOX250',
-        type: 'reduction',
-        quantity: 5,
-        previousStock: 30,
-        newStock: 25,
-        reason: 'Damaged items',
-        reference: 'ADJ-2024-001',
-        notes: 'Found 5 damaged capsules during inspection',
-        adjustedBy: 'John Smith',
-        adjustedAt: '2024-01-19T14:20:00',
-        status: 'completed'
-      },
-      {
-        id: 3,
-        productId: 4,
-        productName: 'Ibuprofen 400mg',
-        productSku: 'IBU400',
-        type: 'correction',
-        quantity: 50,
-        previousStock: 150,
-        newStock: 200,
-        reason: 'Stock count correction',
-        reference: 'SC-2024-001',
-        notes: 'Physical count showed 200 units, system had 150',
-        adjustedBy: 'Dr. Sarah Wilson',
-        adjustedAt: '2024-01-18T09:15:00',
-        status: 'completed'
+    const loadInitial = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const [productsData, adjustmentsData] = await Promise.all([
+          productsApi.getAll().catch(() => []),
+          stockAdjustmentsApi.getAll().catch(() => []),
+        ])
+        setProducts(Array.isArray(productsData) ? productsData : [])
+        // Normalize adjustments for table rendering
+        const normalized = Array.isArray(adjustmentsData) ? adjustmentsData.map(a => ({
+          id: a.stockAdjustmentId ?? a.id ?? Math.random(),
+          productId: a.product?.id,
+          productName: a.product?.name || 'Unknown Product',
+          productSku: a.product?.sku || a.product?.barcode || '—',
+          type: (a.changeType || '').toString().toLowerCase(),
+          quantityChanged: a.quantityChanged,
+          reason: a.reason,
+          productBatchId: a.productBatchId,
+          adjustedBy: a.adjustedBy || '—',
+          adjustedAt: a.adjustedAt || new Date().toISOString(),
+        })) : []
+        setAdjustments(normalized)
+      } catch (e) {
+        setError(e.message || 'Failed to load stock adjustments')
+      } finally {
+        setLoading(false)
       }
-    ]
-    
-    setTimeout(() => {
-      setAdjustments(mockAdjustments)
-      setProducts(mockProducts)
-      setLoading(false)
-    }, 500)
+    }
+    loadInitial()
   }, [])
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const selectedProduct = products.find(p => p.id === parseInt(formData.productId))
-    
-    if (!selectedProduct) return
-
-    let newStock = selectedProduct.currentStock
-    let adjustmentQuantity = parseInt(formData.quantity)
-
-    switch (formData.type) {
-      case 'addition':
-        newStock += adjustmentQuantity
-        break
-      case 'reduction':
-        newStock = Math.max(0, newStock - adjustmentQuantity)
-        adjustmentQuantity = -adjustmentQuantity // Store as negative for reduction
-        break
-      case 'correction':
-        adjustmentQuantity = parseInt(formData.quantity) - selectedProduct.currentStock
-        newStock = parseInt(formData.quantity)
-        break
-    }
-
-    if (editingAdjustment) {
-      // Update existing adjustment
-      setAdjustments(adjustments.map(adjustment => 
-        adjustment.id === editingAdjustment.id 
-          ? { 
-              ...adjustment, 
-              ...formData,
-              productName: selectedProduct.name,
-              productSku: selectedProduct.sku,
-              quantity: Math.abs(adjustmentQuantity),
-              previousStock: selectedProduct.currentStock,
-              newStock: newStock,
-              adjustedBy: user?.name || user?.username,
-              adjustedAt: new Date().toISOString()
-            }
-          : adjustment
-      ))
-    } else {
-      // Add new adjustment
-      const newAdjustment = {
-        id: Date.now(),
-        productId: parseInt(formData.productId),
-        productName: selectedProduct.name,
-        productSku: selectedProduct.sku,
-        type: formData.type,
-        quantity: Math.abs(adjustmentQuantity),
-        previousStock: selectedProduct.currentStock,
-        newStock: newStock,
-        reason: formData.reason,
-        reference: formData.reference,
-        notes: formData.notes,
-        adjustedBy: user?.name || user?.username,
-        adjustedAt: new Date().toISOString(),
-        status: 'completed'
+  // Load batches whenever product changes
+  useEffect(() => {
+    const loadBatches = async () => {
+      if (!formData.productId) {
+        setBatches([])
+        setFormData(prev => ({ ...prev, productBatchId: '' }))
+        return
       }
-      setAdjustments([newAdjustment, ...adjustments])
-
-      // Update product stock in mock data
-      setProducts(products.map(p => 
-        p.id === parseInt(formData.productId) 
-          ? { ...p, currentStock: newStock }
-          : p
-      ))
+      try {
+        const list = await productBatchesApi.getByProductId(formData.productId)
+        setBatches(Array.isArray(list) ? list : [])
+      } catch (_) {
+        setBatches([])
+      }
     }
-    
-    resetForm()
+    loadBatches()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.productId])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      setSubmitting(true)
+      setError(null)
+      const selectedBatch = batches.find(b => String(b.id) === String(formData.productBatchId))
+      const qtyInput = parseInt(formData.quantity)
+      if (!selectedBatch || isNaN(qtyInput)) throw new Error('Please select a batch and enter a valid quantity')
+
+      let quantityChanged = qtyInput
+      if (formData.type === 'addition') quantityChanged = Math.abs(qtyInput)
+      if (formData.type === 'reduction') quantityChanged = -Math.abs(qtyInput)
+      if (formData.type === 'correction') quantityChanged = qtyInput - (selectedBatch.quantity || 0)
+
+      const dto = {
+        productId: parseInt(formData.productId),
+        productBatchId: parseInt(formData.productBatchId),
+        quantityChanged,
+        reason: formData.reason,
+      }
+
+      if (editingAdjustment) {
+        // Assuming only create endpoint is available as per provided DTOs;
+        // For edit, we can recreate by posting another adjustment. Here we fall back to create.
+        await stockAdjustmentsApi.create(dto)
+      } else {
+        await stockAdjustmentsApi.create(dto)
+      }
+
+      const refreshed = await stockAdjustmentsApi.getAll().catch(() => [])
+      const normalized = Array.isArray(refreshed) ? refreshed.map(a => ({
+        id: a.stockAdjustmentId ?? a.id ?? Math.random(),
+        productId: a.product?.id,
+        productName: a.product?.name || 'Unknown Product',
+        productSku: a.product?.sku || a.product?.barcode || '—',
+        type: (a.changeType || '').toString().toLowerCase(),
+        quantityChanged: a.quantityChanged,
+        reason: a.reason,
+        productBatchId: a.productBatchId,
+        adjustedBy: a.adjustedBy || '—',
+        adjustedAt: a.adjustedAt || new Date().toISOString(),
+      })) : []
+      setAdjustments(normalized)
+
+      resetForm()
+    } catch (err) {
+      setError(err.message || 'Failed to save stock adjustment')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const resetForm = () => {
@@ -206,31 +175,28 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
     setEditingAdjustment(null)
     setFormData({
       productId: '',
+      productBatchId: '',
       type: 'addition',
       quantity: '',
       reason: '',
-      reference: '',
-      notes: ''
     })
   }
 
   const handleEdit = (adjustment) => {
     setEditingAdjustment(adjustment)
     setFormData({
-      productId: adjustment.productId.toString(),
-      type: adjustment.type,
-      quantity: adjustment.type === 'correction' ? adjustment.newStock.toString() : adjustment.quantity.toString(),
-      reason: adjustment.reason,
-      reference: adjustment.reference,
-      notes: adjustment.notes
+      productId: adjustment.productId ? String(adjustment.productId) : '',
+      productBatchId: adjustment.productBatchId ? String(adjustment.productBatchId) : '',
+      type: adjustment.type || 'addition',
+      quantity: adjustment.quantityChanged ? String(Math.abs(adjustment.quantityChanged)) : '',
+      reason: adjustment.reason || '',
     })
     setShowAddModal(true)
   }
 
-  const handleDelete = (adjustmentId) => {
-    if (window.confirm('Are you sure you want to delete this adjustment? This action cannot be undone.')) {
-      setAdjustments(adjustments.filter(adjustment => adjustment.id !== adjustmentId))
-    }
+  const handleDelete = async (adjustmentId) => {
+    // No delete endpoint specified; ideally call API if available. For now, remove locally.
+    setAdjustments(adjustments.filter(adjustment => adjustment.id !== adjustmentId))
   }
 
   const getTypeColor = (type) => {
@@ -256,10 +222,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
   }
 
   const filteredAdjustments = adjustments.filter(adjustment => {
-    const matchesSearch = adjustment.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         adjustment.productSku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         adjustment.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         adjustment.reference.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (adjustment.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (adjustment.productSku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (adjustment.reason || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = filterType === 'all' || adjustment.type === filterType
     return matchesSearch && matchesType
   })
@@ -284,15 +249,20 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
             Manage inventory adjustments for stock corrections, additions, and reductions
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
-        >
-          <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          New Adjustment
-        </button>
+        <div className="flex gap-3 items-center">
+          {error && (
+            <span className="text-red-500 text-sm">{error}</span>
+          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
+          >
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            New Adjustment
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -312,7 +282,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
             <div>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Additions</p>
               <p className="text-2xl font-bold text-green-600">
-                {adjustments.filter(a => a.type === 'addition').length}
+                {adjustments.filter(a => a.type === 'addition' || (a.type === 'increment' && a.quantityChanged > 0)).length}
               </p>
             </div>
             <IconPlusCircle className="w-7 h-7 text-green-600" />
@@ -324,7 +294,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
             <div>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Reductions</p>
               <p className="text-2xl font-bold text-red-600">
-                {adjustments.filter(a => a.type === 'reduction').length}
+                {adjustments.filter(a => a.type === 'reduction' || (a.type === 'decrement' && a.quantityChanged < 0)).length}
               </p>
             </div>
             <IconMinusCircle className="w-7 h-7 text-red-600" />
@@ -349,7 +319,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Search by product name, SKU, reason, or reference..."
+            placeholder="Search by product name, SKU, or reason..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
@@ -398,11 +368,6 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-500'
                 }`}>
-                  Stock Change
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-500'
-                }`}>
                   Adjusted By
                 </th>
                 <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -422,46 +387,28 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                         SKU: {adjustment.productSku}
                       </div>
                       <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {adjustment.reference && `Ref: ${adjustment.reference}`}
+                        Batch: {adjustment.productBatchId || '—'}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(adjustment.type)}`}>
-                        {getTypeIcon(adjustment.type)} {adjustment.type.charAt(0).toUpperCase() + adjustment.type.slice(1)}
+                        {getTypeIcon(adjustment.type)} {adjustment.type?.charAt(0).toUpperCase() + adjustment.type?.slice(1)}
                       </span>
                       <div className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Qty: {adjustment.quantity}
+                        Qty change: {adjustment.quantityChanged > 0 ? `+${adjustment.quantityChanged}` : adjustment.quantityChanged}
                       </div>
                       <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {adjustment.reason}
+                        {adjustment.reason || '—'}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
-                      <div className="flex items-center space-x-2">
-                        <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                          {adjustment.previousStock}
-                        </span>
-                        <IconArrowRight className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium">
-                          {adjustment.newStock}
-                        </span>
-                      </div>
-                      <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {adjustment.type === 'addition' && `+${adjustment.quantity}`}
-                        {adjustment.type === 'reduction' && `-${adjustment.quantity}`}
-                        {adjustment.type === 'correction' && `${adjustment.newStock - adjustment.previousStock > 0 ? '+' : ''}${adjustment.newStock - adjustment.previousStock}`}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
-                      <div className="font-medium">{adjustment.adjustedBy}</div>
+                      <div className="font-medium">{adjustment.adjustedBy || '—'}</div>
                       <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {new Date(adjustment.adjustedAt).toLocaleDateString()} {new Date(adjustment.adjustedAt).toLocaleTimeString()}
+                        {adjustment.adjustedAt ? new Date(adjustment.adjustedAt).toLocaleString() : '—'}
                       </div>
                     </div>
                   </td>
@@ -517,7 +464,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                   <select
                     required
                     value={formData.productId}
-                    onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, productId: e.target.value, productBatchId: '' })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
@@ -527,7 +474,32 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                     <option value="">Select Product</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.name} ({product.sku}) - Current: {product.currentStock} {product.unit}
+                        {product.name} {product.sku ? `(${product.sku})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Product Batch *
+                  </label>
+                  <select
+                    required
+                    value={formData.productBatchId}
+                    onChange={(e) => setFormData({ ...formData, productBatchId: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Select Batch</option>
+                    {batches.map((batch) => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.batchNumber || `Batch #${batch.id}`} • Qty: {batch.quantity ?? '0'}
                       </option>
                     ))}
                   </select>
@@ -572,26 +544,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder={formData.type === 'correction' ? 'Enter correct stock level' : 'Enter quantity to adjust'}
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Reference
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.reference}
-                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="PO number, batch reference, etc."
+                    placeholder={formData.type === 'correction' ? 'Enter correct stock level for this batch' : 'Enter quantity to adjust'}
                   />
                 </div>
               </div>
@@ -626,25 +579,6 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 </select>
               </div>
               
-              <div className="mt-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Notes
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  rows="3"
-                  placeholder="Additional notes about this adjustment..."
-                />
-              </div>
-              
               <div className="flex space-x-3 mt-6">
                 <button
                   type="button"
@@ -659,7 +593,12 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all duration-200"
+                  disabled={submitting}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    submitting
+                      ? 'opacity-50 cursor-not-allowed bg-gray-400'
+                      : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg'
+                  }`}
                 >
                   {editingAdjustment ? 'Update' : 'Create'} Adjustment
                 </button>
