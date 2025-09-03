@@ -61,10 +61,19 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
   const [formData, setFormData] = useState({
     productId: '',
     productBatchId: '',
-    type: 'addition',
+    type: 'IN',
     quantity: '',
     reason: '',
   })
+
+  const normalizeType = (backendType) => {
+    if (!backendType) return 'IN'
+    const t = backendType.toString().toUpperCase()
+    if (t === 'IN' || t === 'OUT' || t === 'CORRECTION') return t
+    if (t.includes('ADD') || t === 'INCREMENT' || t === '+') return 'IN'
+    if (t.includes('REDUC') || t === 'DECREMENT' || t === '-') return 'OUT'
+    return 'CORRECTION'
+  }
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -82,7 +91,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
           productId: a.product?.id,
           productName: a.product?.name || 'Unknown Product',
           productSku: a.product?.sku || a.product?.barcode || '—',
-          type: (a.changeType || '').toString().toLowerCase(),
+          type: normalizeType(a.adjustmentType),
           quantityChanged: a.quantityChanged,
           reason: a.reason,
           productBatchId: a.productBatchId,
@@ -128,24 +137,19 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
       if (!selectedBatch || isNaN(qtyInput)) throw new Error('Please select a batch and enter a valid quantity')
 
       let quantityChanged = qtyInput
-      if (formData.type === 'addition') quantityChanged = Math.abs(qtyInput)
-      if (formData.type === 'reduction') quantityChanged = -Math.abs(qtyInput)
-      if (formData.type === 'correction') quantityChanged = qtyInput - (selectedBatch.quantity || 0)
+      if (formData.type === 'IN') quantityChanged = Math.abs(qtyInput)
+      if (formData.type === 'OUT') quantityChanged = -Math.abs(qtyInput)
+      if (formData.type === 'CORRECTION') quantityChanged = qtyInput - (selectedBatch.quantity || 0)
 
       const dto = {
         productId: parseInt(formData.productId),
         productBatchId: parseInt(formData.productBatchId),
         quantityChanged,
+        adjustmentType: formData.type,
         reason: formData.reason,
       }
 
-      if (editingAdjustment) {
-        // Assuming only create endpoint is available as per provided DTOs;
-        // For edit, we can recreate by posting another adjustment. Here we fall back to create.
-        await stockAdjustmentsApi.create(dto)
-      } else {
-        await stockAdjustmentsApi.create(dto)
-      }
+      await stockAdjustmentsApi.create(dto)
 
       const refreshed = await stockAdjustmentsApi.getAll().catch(() => [])
       const normalized = Array.isArray(refreshed) ? refreshed.map(a => ({
@@ -153,7 +157,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         productId: a.product?.id,
         productName: a.product?.name || 'Unknown Product',
         productSku: a.product?.sku || a.product?.barcode || '—',
-        type: (a.changeType || '').toString().toLowerCase(),
+        type: normalizeType(a.changeType || a.adjustmentType),
         quantityChanged: a.quantityChanged,
         reason: a.reason,
         productBatchId: a.productBatchId,
@@ -176,7 +180,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
     setFormData({
       productId: '',
       productBatchId: '',
-      type: 'addition',
+      type: 'IN',
       quantity: '',
       reason: '',
     })
@@ -187,7 +191,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
     setFormData({
       productId: adjustment.productId ? String(adjustment.productId) : '',
       productBatchId: adjustment.productBatchId ? String(adjustment.productBatchId) : '',
-      type: adjustment.type || 'addition',
+      type: normalizeType(adjustment.type),
       quantity: adjustment.quantityChanged ? String(Math.abs(adjustment.quantityChanged)) : '',
       reason: adjustment.reason || '',
     })
@@ -201,20 +205,20 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'addition': return 'bg-green-100 text-green-800'
-      case 'reduction': return 'bg-red-100 text-red-800'
-      case 'correction': return 'bg-blue-100 text-blue-800'
+      case 'IN': return 'bg-green-100 text-green-800'
+      case 'OUT': return 'bg-red-100 text-red-800'
+      case 'CORRECTION': return 'bg-blue-100 text-blue-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getTypeIcon = (type) => {
     switch (type) {
-      case 'addition':
+      case 'IN':
         return <IconPlusCircle className="w-4 h-4 mr-1" />
-      case 'reduction':
+      case 'OUT':
         return <IconMinusCircle className="w-4 h-4 mr-1" />
-      case 'correction':
+      case 'CORRECTION':
         return <IconAdjustments className="w-4 h-4 mr-1" />
       default:
         return null
@@ -280,9 +284,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Additions</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>IN</p>
               <p className="text-2xl font-bold text-green-600">
-                {adjustments.filter(a => a.type === 'addition' || (a.type === 'increment' && a.quantityChanged > 0)).length}
+                {adjustments.filter(a => a.type === 'IN' && a.quantityChanged > 0).length}
               </p>
             </div>
             <IconPlusCircle className="w-7 h-7 text-green-600" />
@@ -292,9 +296,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Reductions</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>OUT</p>
               <p className="text-2xl font-bold text-red-600">
-                {adjustments.filter(a => a.type === 'reduction' || (a.type === 'decrement' && a.quantityChanged < 0)).length}
+                {adjustments.filter(a => a.type === 'OUT' && a.quantityChanged < 0).length}
               </p>
             </div>
             <IconMinusCircle className="w-7 h-7 text-red-600" />
@@ -304,9 +308,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Corrections</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CORRECTION</p>
               <p className="text-2xl font-bold text-blue-600">
-                {adjustments.filter(a => a.type === 'correction').length}
+                {adjustments.filter(a => a.type === 'CORRECTION').length}
               </p>
             </div>
             <IconAdjustments className={`w-7 h-7 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
@@ -340,9 +344,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
             }`}
           >
             <option value="all">All Types</option>
-            <option value="addition">Additions</option>
-            <option value="reduction">Reductions</option>
-            <option value="correction">Corrections</option>
+            <option value="IN">IN</option>
+            <option value="OUT">OUT</option>
+            <option value="CORRECTION">CORRECTION</option>
           </select>
         </div>
       </div>
@@ -394,7 +398,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(adjustment.type)}`}>
-                        {getTypeIcon(adjustment.type)} {adjustment.type?.charAt(0).toUpperCase() + adjustment.type?.slice(1)}
+                        {getTypeIcon(adjustment.type)} {adjustment.type}
                       </span>
                       <div className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Qty change: {adjustment.quantityChanged > 0 ? `+${adjustment.quantityChanged}` : adjustment.quantityChanged}
@@ -521,9 +525,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
                   >
-                    <option value="addition">Addition (+)</option>
-                    <option value="reduction">Reduction (-)</option>
-                    <option value="correction">Stock Correction</option>
+                    <option value="IN">IN (+)</option>
+                    <option value="OUT">OUT (-)</option>
+                    <option value="CORRECTION">Stock CORRECTION</option>
                   </select>
                 </div>
                 
@@ -531,7 +535,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    {formData.type === 'correction' ? 'New Stock Level *' : 'Quantity *'}
+                    {formData.type === 'CORRECTION' ? 'New Stock Level *' : 'Quantity *'}
                   </label>
                   <input
                     type="number"
@@ -544,7 +548,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder={formData.type === 'correction' ? 'Enter correct stock level for this batch' : 'Enter quantity to adjust'}
+                    placeholder={formData.type === 'CORRECTION' ? 'Enter correct stock level for this batch' : 'Enter quantity to adjust'}
                   />
                 </div>
               </div>
