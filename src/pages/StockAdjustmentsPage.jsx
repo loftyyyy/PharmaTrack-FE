@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
 import productsApi from '../services/productsApi'
 import { productBatchesApi } from '../services/productBatchesApi'
 import stockAdjustmentsApi from '../services/stockAdjustmentsApi'
@@ -47,10 +46,10 @@ const IconArrowRight = ({ className = '' }) => (
 )
 
 const StockAdjustmentsPage = ({ isDarkMode }) => {
-  const { user } = useAuth()
   const [adjustments, setAdjustments] = useState([])
   const [products, setProducts] = useState([])
   const [batches, setBatches] = useState([])
+  const [batchesLoading, setBatchesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingAdjustment, setEditingAdjustment] = useState(null)
@@ -117,14 +116,16 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         return
       }
       try {
+        setBatchesLoading(true)
         const list = await productBatchesApi.getByProductId(formData.productId)
         setBatches(Array.isArray(list) ? list : [])
-      } catch (_) {
+      } catch {
         setBatches([])
+      } finally {
+        setBatchesLoading(false)
       }
     }
     loadBatches()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.productId])
 
   const handleSubmit = async (e) => {
@@ -492,20 +493,34 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                   </label>
                   <select
                     required
+                    disabled={!formData.productId || batchesLoading}
                     value={formData.productBatchId}
                     onChange={(e) => setFormData({ ...formData, productBatchId: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    } ${(!formData.productId || batchesLoading) ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
-                    <option value="">Select Batch</option>
-                    {batches.map((batch) => (
-                      <option key={batch.id} value={batch.id}>
-                        {batch.batchNumber || `Batch #${batch.id}`} • Qty: {batch.quantity ?? '0'}
-                      </option>
-                    ))}
+                    {!formData.productId && (
+                      <option value="">Select a product first</option>
+                    )}
+                    {formData.productId && batchesLoading && (
+                      <option value="">Loading batches...</option>
+                    )}
+                    {formData.productId && !batchesLoading && (
+                      <>
+                        <option value="">Select Batch</option>
+                        {batches.map((batch) => (
+                          <option key={batch.id} value={batch.id}>
+                            {batch.batchNumber || `Batch #${batch.id}`} • Qty: {batch.quantity ?? '0'}
+                          </option>
+                        ))}
+                        {batches.length === 0 && (
+                          <option value="" disabled>No batches found for this product</option>
+                        )}
+                      </>
+                    )}
                   </select>
                 </div>
                 
@@ -600,11 +615,11 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
                   disabled={submitting}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
                     submitting
-                      ? 'opacity-50 cursor-not-allowed bg-gray-400'
-                      : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg'
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg'
                   }`}
                 >
-                  {editingAdjustment ? 'Update' : 'Create'} Adjustment
+                  {submitting ? 'Saving...' : (editingAdjustment ? 'Update Adjustment' : 'Create Adjustment')}
                 </button>
               </div>
             </form>

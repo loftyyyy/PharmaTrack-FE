@@ -4,12 +4,20 @@
 const BASE_URL = 'http://localhost:8080/api/v1'
 
 export const productBatchesApi = {
-  // Get all batches for a specific product
-  // Note: Your controller doesn't have this endpoint, so we'll filter from getAll
+  // Get all batches for a specific product via backend endpoint
   getByProductId: async (productId) => {
     try {
-      const allBatches = await this.getAll()
-      return allBatches.filter(batch => batch.productId === parseInt(productId))
+      const response = await fetch(`${BASE_URL}/productBatches/${productId}/batches`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
+        }
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return await response.json()
     } catch (error) {
       console.error('Failed to fetch product batches by product ID:', error)
       return []

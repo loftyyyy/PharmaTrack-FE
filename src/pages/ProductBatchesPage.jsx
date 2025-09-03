@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { products as productsApi } from '../services/api'
+import productsApi from '../services/productsApi'
 import { productBatchesApi } from '../services/productBatchesApi'
 
 const ProductBatchesPage = ({ isDarkMode }) => {
