@@ -51,47 +51,15 @@ const IconDownload = ({ className = '' }) => (
   </svg>
 )
 
-const IconFilter = ({ className = '' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
-  </svg>
-)
 
 const InventoryLogsPage = ({ isDarkMode }) => {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterChangeType, setFilterChangeType] = useState('all')
-  const [filterDateRange, setFilterDateRange] = useState('all')
-  const [showFilters, setShowFilters] = useState(false)
   const [selectedLog, setSelectedLog] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [exporting, setExporting] = useState(false)
-
-  // Date range options
-  const dateRangeOptions = [
-    { value: 'all', label: 'All Time' },
-    { value: 'today', label: 'Today' },
-    { value: 'yesterday', label: 'Yesterday' },
-    { value: '7days', label: 'Last 7 Days' },
-    { value: '30days', label: 'Last 30 Days' },
-    { value: '90days', label: 'Last 90 Days' }
-  ]
-
-  // Change type options
-  const changeTypeOptions = [
-    { value: 'all', label: 'All Types' },
-    { value: 'IN', label: 'Stock In' },
-    { value: 'OUT', label: 'Stock Out' },
-    { value: 'SALE', label: 'Sale' },
-    { value: 'PURCHASE', label: 'Purchase' },
-    { value: 'ADJUSTMENT', label: 'Adjustment' },
-    { value: 'TRANSFER_IN', label: 'Transfer In' },
-    { value: 'TRANSFER_OUT', label: 'Transfer Out' },
-    { value: 'RETURN', label: 'Return' },
-    { value: 'EXPIRED', label: 'Expired' }
-  ]
 
   useEffect(() => {
     loadLogs()
@@ -102,46 +70,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
       setLoading(true)
       setError(null)
       
-      // Build query parameters
-      const params = {}
-      if (filterChangeType !== 'all') {
-        params.changeType = filterChangeType
-      }
-      if (filterDateRange !== 'all') {
-        const now = new Date()
-        switch (filterDateRange) {
-          case 'today':
-            params.startDate = now.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-            break
-          case 'yesterday':
-            const yesterday = new Date(now)
-            yesterday.setDate(yesterday.getDate() - 1)
-            params.startDate = yesterday.toISOString().split('T')[0]
-            params.endDate = yesterday.toISOString().split('T')[0]
-            break
-          case '7days':
-            const weekAgo = new Date(now)
-            weekAgo.setDate(weekAgo.getDate() - 7)
-            params.startDate = weekAgo.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-            break
-          case '30days':
-            const monthAgo = new Date(now)
-            monthAgo.setDate(monthAgo.getDate() - 30)
-            params.startDate = monthAgo.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-            break
-          case '90days':
-            const quarterAgo = new Date(now)
-            quarterAgo.setDate(quarterAgo.getDate() - 90)
-            params.startDate = quarterAgo.toISOString().split('T')[0]
-            params.endDate = now.toISOString().split('T')[0]
-            break
-        }
-      }
-
-      const logsData = await inventoryLogsApi.getAll(params)
+      const logsData = await inventoryLogsApi.getAll()
       
       // Normalize logs for table rendering
       const normalized = Array.isArray(logsData) ? logsData.map(log => ({
@@ -174,13 +103,8 @@ const InventoryLogsPage = ({ isDarkMode }) => {
   const handleExport = async () => {
     try {
       setExporting(true)
-      const params = {}
-      if (filterChangeType !== 'all') params.changeType = filterChangeType
-      if (filterDateRange !== 'all') {
-        // Add date range logic here similar to loadLogs
-      }
       
-      const blob = await inventoryLogsApi.export(params)
+      const blob = await inventoryLogsApi.export()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -240,8 +164,18 @@ const InventoryLogsPage = ({ isDarkMode }) => {
   }
 
   const getChangeTypeLabel = (changeType) => {
-    const option = changeTypeOptions.find(opt => opt.value === changeType)
-    return option ? option.label : changeType
+    const labels = {
+      'IN': 'Stock In',
+      'OUT': 'Stock Out',
+      'SALE': 'Sale',
+      'PURCHASE': 'Purchase',
+      'ADJUSTMENT': 'Adjustment',
+      'TRANSFER_IN': 'Transfer In',
+      'TRANSFER_OUT': 'Transfer Out',
+      'RETURN': 'Return',
+      'EXPIRED': 'Expired'
+    }
+    return labels[changeType] || changeType
   }
 
   const filteredLogs = logs.filter(log => {
@@ -251,9 +185,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
       (log.reason || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.adjustmentReference || '').toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesChangeType = filterChangeType === 'all' || log.changeType === filterChangeType
-    
-    return matchesSearch && matchesChangeType
+    return matchesSearch
   })
 
   if (loading) {
@@ -280,17 +212,6 @@ const InventoryLogsPage = ({ isDarkMode }) => {
           {error && (
             <span className="text-red-500 text-sm">{error}</span>
           )}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
-              isDarkMode
-                ? 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700'
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <IconFilter className="w-4 h-4 inline mr-2" />
-            Filters
-          </button>
           <button
             onClick={handleExport}
             disabled={exporting}
@@ -355,61 +276,6 @@ const InventoryLogsPage = ({ isDarkMode }) => {
         </div>
       </div>
 
-      {/* Filters */}
-      {showFilters && (
-        <div className={`rounded-lg p-4 mb-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Change Type
-              </label>
-              <select
-                value={filterChangeType}
-                onChange={(e) => setFilterChangeType(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                {changeTypeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Date Range
-              </label>
-              <select
-                value={filterDateRange}
-                onChange={(e) => setFilterDateRange(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                {dateRangeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={loadLogs}
-                className="w-full bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:from-pharma-medium hover:to-pharma-dark transition-all duration-200"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Search */}
       <div className="mb-6">
