@@ -21,6 +21,7 @@ import CategoriesPage from './pages/CategoriesPage'
 import ProductBatchesPage from './pages/ProductBatchesPage'
 import StockLevelsPage from './pages/StockLevelsPage'
 import StockAdjustmentsPage from './pages/StockAdjustmentsPage'
+import InventoryLogsPage from './pages/InventoryLogsPage'
 import PurchasesPage from './pages/PurchasesPage'
 import CustomersPage from './pages/CustomersPage'
 import SalesPOSPage from './pages/SalesPOSPage'
@@ -214,15 +215,7 @@ const ProtectedApp = () => {
               } />
               <Route path="/inventory-logs" element={
                 <ProtectedRoute requiredRole="ADMIN">
-                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-                    <h1 className="text-2xl font-bold">Inventory Logs</h1>
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Read-only audit trail of all inventory changes and transactions.
-                    </p>
-                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
-                      <p className="text-center text-gray-500">This page is under development.</p>
-                    </div>
-                  </div>
+                  <InventoryLogsPage isDarkMode={isDarkMode} />
                 </ProtectedRoute>
               } />
               
