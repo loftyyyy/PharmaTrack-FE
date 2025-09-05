@@ -13,6 +13,7 @@ const AllProductsPage = ({ isDarkMode }) => {
   const [editingProduct, setEditingProduct] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
+  const [filterBatchManaged, setFilterBatchManaged] = useState('all')
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [loadingError, setLoadingError] = useState(null)
@@ -200,15 +201,40 @@ const AllProductsPage = ({ isDarkMode }) => {
   }
 
   const getStockStatus = (product) => {
-    // Since stock is managed by batches, we show batch-based status
+    // Check if product is batch managed based on the new batchManaged field
+    if (product.batchManaged === true) {
+      return { 
+        status: 'batch-managed', 
+        color: 'bg-blue-100 text-blue-800', 
+        text: 'Batch Managed',
+        urgent: false
+      }
+    }
+    
+    if (product.batchManaged === false) {
+      return { 
+        status: 'batch-not-managed', 
+        color: 'bg-orange-100 text-orange-800', 
+        text: 'Batch Not Managed',
+        urgent: true
+      }
+    }
+    
+    // Fallback for products without batchManaged field (legacy behavior)
     if (!product.currentStock && product.currentStock !== 0) {
-      return { status: 'batch-managed', color: 'bg-blue-100 text-blue-800', text: 'Batch Managed' }
+      return { 
+        status: 'batch-managed', 
+        color: 'bg-blue-100 text-blue-800', 
+        text: 'Batch Managed',
+        urgent: false
+      }
     }
-    if (product.currentStock === 0) return { status: 'out', color: 'bg-red-100 text-red-800', text: 'Out of Stock' }
+    
+    if (product.currentStock === 0) return { status: 'out', color: 'bg-red-100 text-red-800', text: 'Out of Stock', urgent: false }
     if (product.minimumStock && product.currentStock < product.minimumStock) {
-      return { status: 'low', color: 'bg-yellow-100 text-yellow-800', text: 'Low Stock' }
+      return { status: 'low', color: 'bg-yellow-100 text-yellow-800', text: 'Low Stock', urgent: false }
     }
-    return { status: 'normal', color: 'bg-green-100 text-green-800', text: 'In Stock' }
+    return { status: 'normal', color: 'bg-green-100 text-green-800', text: 'In Stock', urgent: false }
   }
 
   const filteredProducts = products.filter(product => {
@@ -217,7 +243,10 @@ const AllProductsPage = ({ isDarkMode }) => {
                          product.barcode?.includes(searchTerm) ||
                          product.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = filterCategory === 'all' || product.category?.id === parseInt(filterCategory)
-    return matchesSearch && matchesCategory
+    const matchesBatchManaged = filterBatchManaged === 'all' || 
+                               (filterBatchManaged === 'managed' && product.batchManaged === true) ||
+                               (filterBatchManaged === 'not-managed' && product.batchManaged === false)
+    return matchesSearch && matchesCategory && matchesBatchManaged
   })
 
   if (loading) {
@@ -297,7 +326,7 @@ const AllProductsPage = ({ isDarkMode }) => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
@@ -348,6 +377,17 @@ const AllProductsPage = ({ isDarkMode }) => {
           </div>
         </div>
 
+        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Not Batch Managed</p>
+              <p className="text-2xl font-bold text-orange-600">
+                {products.filter(p => p.batchManaged === false).length}
+              </p>
+            </div>
+            <div className="text-2xl">⚠️</div>
+          </div>
+        </div>
 
       </div>
 
@@ -382,6 +422,21 @@ const AllProductsPage = ({ isDarkMode }) => {
                 {category.name}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <select
+            value={filterBatchManaged}
+            onChange={(e) => setFilterBatchManaged(e.target.value)}
+            className={`px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          >
+            <option value="all">All Products</option>
+            <option value="managed">Batch Managed</option>
+            <option value="not-managed">Not Batch Managed</option>
           </select>
         </div>
       </div>
@@ -458,12 +513,19 @@ const AllProductsPage = ({ isDarkMode }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
                         <div className="font-medium">
-                          {product.currentStock !== undefined ? `${product.currentStock} ${product.unit || 'units'}` : 'Managed by Batches'}
+                          {product.currentStock !== undefined ? `${product.currentStock} ${product.unit || 'units'}` : 
+                           product.batchManaged === true ? 'Managed by Batches' : 
+                           product.batchManaged === false ? 'Not Batch Managed' : 'Managed by Batches'}
                         </div>
                         <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                           Min Stock: {product.minimumStock || 'Not Set'}
                         </div>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${stockStatus.color} mt-1`}>
+                        <span 
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${stockStatus.color} mt-1 ${
+                            stockStatus.urgent ? 'cursor-help' : ''
+                          }`}
+                          title={stockStatus.urgent ? 'This product needs batch tracking for proper inventory management. Add product batches to enable accurate stock tracking and expiry monitoring.' : ''}
+                        >
                           {stockStatus.text}
                         </span>
                       </div>
@@ -481,12 +543,36 @@ const AllProductsPage = ({ isDarkMode }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="text-pharma-teal hover:text-pharma-medium"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(product)}
+                          disabled={product.batchManaged === false}
+                          className={`${
+                            product.batchManaged === false
+                              ? 'text-gray-400 cursor-not-allowed opacity-50'
+                              : 'text-pharma-teal hover:text-pharma-medium'
+                          }`}
+                          title={product.batchManaged === false ? 'Cannot edit: Product needs batch management first' : 'Edit product'}
+                        >
+                          Edit
+                        </button>
+                        {product.batchManaged === false && (
+                          <button
+                            onClick={() => {
+                              // Navigate to Product Batches page - this would need to be implemented with routing
+                              window.location.href = '/product-batches'
+                            }}
+                            className={`text-xs font-medium px-3 py-1.5 rounded-md transition-all duration-200 ${
+                              isDarkMode
+                                ? 'text-orange-400 hover:text-orange-300 hover:bg-orange-900/30'
+                                : 'text-orange-600 hover:text-orange-800 hover:bg-orange-100'
+                            }`}
+                            title="Add product batches to enable proper inventory tracking"
+                          >
+                            Manage Batches
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
