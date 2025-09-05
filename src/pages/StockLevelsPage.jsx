@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { stockLevelsApi } from '../services/stockLevelsApi'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 const StockLevelsPage = ({ isDarkMode }) => {
   const [stockItems, setStockItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
+  const [loadingError, setLoadingError] = useState(null)
   const [filter, setFilter] = useState('all') // all, low, out
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -15,12 +17,13 @@ const StockLevelsPage = ({ isDarkMode }) => {
       setLoading(true)
       setRefreshing(true)
       setError(null)
+      setLoadingError(null)
       const data = await stockLevelsApi.getAll()
       console.log('📥 Stock levels data:', data)
       setStockItems(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to fetch stock levels:', error)
-      setError(error.message || 'Failed to fetch stock levels')
+      setLoadingError(error)
       setStockItems([])
     } finally {
       setLoading(false)
@@ -66,7 +69,12 @@ const StockLevelsPage = ({ isDarkMode }) => {
     return (
       <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pharma-teal"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pharma-teal mx-auto mb-4"></div>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Loading stock levels...
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -102,21 +110,18 @@ const StockLevelsPage = ({ isDarkMode }) => {
         </button>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <div className="flex items-center">
-            <span className="mr-2">❌</span>
-            <span>{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="ml-auto text-red-500 hover:text-red-700"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Error Display */}
+      <ErrorDisplay 
+        error={loadingError} 
+        onDismiss={() => setLoadingError(null)}
+        isDarkMode={isDarkMode}
+      />
+
+      <ErrorDisplay 
+        error={error ? { message: error } : null} 
+        onDismiss={() => setError(null)}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Stock Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

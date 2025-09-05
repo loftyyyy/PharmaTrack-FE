@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import productsApi from '../services/productsApi'
 import { productBatchesApi } from '../services/productBatchesApi'
 import stockAdjustmentsApi from '../services/stockAdjustmentsApi'
+import ErrorDisplay from '../components/ErrorDisplay'
+import { getErrorMessage } from '../utils/errorHandler'
 
 // Simple professional-looking inline SVG icons (no external deps)
 const IconChartBars = ({ className = '' }) => (
@@ -58,6 +60,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [loadingError, setLoadingError] = useState(null)
   const [formData, setFormData] = useState({
     productId: '',
     productBatchId: '',
@@ -80,9 +83,17 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
       try {
         setLoading(true)
         setError(null)
+        setLoadingError(null)
         const [productsData, adjustmentsData] = await Promise.all([
-          productsApi.getAll().catch(() => []),
-          stockAdjustmentsApi.getAll().catch(() => []),
+          productsApi.getAll().catch((err) => {
+            console.error('Failed to fetch products:', err)
+            return []
+          }),
+          stockAdjustmentsApi.getAll().catch((err) => {
+            console.error('Failed to fetch adjustments:', err)
+            setLoadingError(err)
+            return []
+          }),
         ])
         setProducts(Array.isArray(productsData) ? productsData : [])
         // Normalize adjustments for table rendering
@@ -100,7 +111,8 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         })) : []
         setAdjustments(normalized)
       } catch (e) {
-        setError(e.message || 'Failed to load stock adjustments')
+        console.error('Failed to load initial data:', e)
+        setLoadingError(e)
       } finally {
         setLoading(false)
       }
@@ -156,7 +168,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
         qtyInput: qtyInput
       })
 
-      const result = await stockAdjustmentsApi.create(dto)
+      await stockAdjustmentsApi.create(dto)
       
       setSuccess('Stock adjustment created successfully!')
       setError(null)
@@ -178,7 +190,9 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
 
       resetForm()
     } catch (err) {
-      setError(err.message || 'Failed to save stock adjustment')
+      console.error('Failed to save stock adjustment:', err)
+      const errorInfo = getErrorMessage(err)
+      setError(errorInfo.message)
       setSuccess(null)
     } finally {
       setSubmitting(false)
@@ -199,17 +213,17 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
     setSuccess(null)
   }
 
-  const handleEdit = (adjustment) => {
-    setEditingAdjustment(adjustment)
-    setFormData({
-      productId: adjustment.productId ? String(adjustment.productId) : '',
-      productBatchId: adjustment.productBatchId ? String(adjustment.productBatchId) : '',
-      type: normalizeType(adjustment.type),
-      quantity: adjustment.quantityChanged ? String(Math.abs(adjustment.quantityChanged)) : '',
-      reason: adjustment.reason || '',
-    })
-    setShowAddModal(true)
-  }
+  // const handleEdit = (adjustment) => {
+  //   setEditingAdjustment(adjustment)
+  //   setFormData({
+  //     productId: adjustment.productId ? String(adjustment.productId) : '',
+  //     productBatchId: adjustment.productBatchId ? String(adjustment.productBatchId) : '',
+  //     type: normalizeType(adjustment.type),
+  //     quantity: adjustment.quantityChanged ? String(Math.abs(adjustment.quantityChanged)) : '',
+  //     reason: adjustment.reason || '',
+  //   })
+  //   setShowAddModal(true)
+  // }
 
 
 
@@ -264,9 +278,6 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
           </p>
         </div>
         <div className="flex gap-3 items-center">
-          {error && (
-            <span className="text-red-500 text-sm">{error}</span>
-          )}
           {success && (
             <span className="text-green-500 text-sm">{success}</span>
           )}
@@ -281,6 +292,19 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
           </button>
         </div>
       </div>
+
+      {/* Error Display */}
+      <ErrorDisplay 
+        error={loadingError} 
+        onDismiss={() => setLoadingError(null)}
+        isDarkMode={isDarkMode}
+      />
+
+      <ErrorDisplay 
+        error={error ? { message: error } : null} 
+        onDismiss={() => setError(null)}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

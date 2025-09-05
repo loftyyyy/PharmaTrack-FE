@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import categoriesApi from '../services/categoriesApi'
+import ErrorDisplay from '../components/ErrorDisplay'
+import { getErrorMessage } from '../utils/errorHandler'
 
 const CategoriesPage = ({ isDarkMode }) => {
   const { user } = useAuth()
@@ -9,6 +11,7 @@ const CategoriesPage = ({ isDarkMode }) => {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [loadingError, setLoadingError] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -30,11 +33,13 @@ const CategoriesPage = ({ isDarkMode }) => {
         setLoading(true)
       }
       setError(null)
+      setLoadingError(null)
       const response = await categoriesApi.getAll()
       setCategories(response || [])
     } catch (err) {
       console.error('Error fetching categories:', err)
-      setError(err.message || 'Failed to fetch categories')
+      setLoadingError(err)
+      setCategories([])
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -78,7 +83,8 @@ const CategoriesPage = ({ isDarkMode }) => {
       }
     } catch (err) {
       console.error('Error saving category:', err)
-      setError(err.message || 'Failed to save category')
+      const errorInfo = getErrorMessage(err)
+      setError(errorInfo.message)
       
       // Close modal immediately on error so user can see the error message
       setShowAddModal(false)
@@ -106,7 +112,12 @@ const CategoriesPage = ({ isDarkMode }) => {
     return (
       <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pharma-teal"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pharma-teal mx-auto mb-4"></div>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Loading categories...
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -158,24 +169,17 @@ const CategoriesPage = ({ isDarkMode }) => {
       </div>
 
       {/* Error Display */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            {error}
-            <button
-              onClick={() => setError(null)}
-              className="ml-auto text-red-700 hover:text-red-900"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      <ErrorDisplay 
+        error={loadingError} 
+        onDismiss={() => setLoadingError(null)}
+        isDarkMode={isDarkMode}
+      />
+
+      <ErrorDisplay 
+        error={error ? { message: error } : null} 
+        onDismiss={() => setError(null)}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Success Display */}
       {success && (

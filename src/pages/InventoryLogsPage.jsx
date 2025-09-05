@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import inventoryLogsApi from '../services/inventoryLogsApi'
+import ErrorDisplay from '../components/ErrorDisplay'
+import { getErrorMessage } from '../utils/errorHandler'
 
 // Simple professional-looking inline SVG icons (no external deps)
 const IconChartBars = ({ className = '' }) => (
@@ -56,6 +58,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [loadingError, setLoadingError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedLog, setSelectedLog] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -69,6 +72,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
     try {
       setLoading(true)
       setError(null)
+      setLoadingError(null)
       
       const logsData = await inventoryLogsApi.getAll()
       
@@ -88,13 +92,9 @@ const InventoryLogsPage = ({ isDarkMode }) => {
       
       setLogs(normalized)
     } catch (e) {
-      // Check if it's a 500 error (endpoint not implemented)
-      if (e.message.includes('500') || e.message.includes('Internal Server Error')) {
-        setError('Inventory logs endpoint is not yet implemented on the backend. Please implement the InventoryLogController first.')
-        setLogs([]) // Set empty array to show the "no data" state
-      } else {
-        setError(e.message || 'Failed to load inventory logs')
-      }
+      console.error('Failed to load inventory logs:', e)
+      setLoadingError(e)
+      setLogs([]) // Set empty array to show the "no data" state
     } finally {
       setLoading(false)
     }
@@ -114,7 +114,9 @@ const InventoryLogsPage = ({ isDarkMode }) => {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (e) {
-      setError(e.message || 'Failed to export logs')
+      console.error('Failed to export logs:', e)
+      const errorInfo = getErrorMessage(e)
+      setError(errorInfo.message)
     } finally {
       setExporting(false)
     }
@@ -209,9 +211,6 @@ const InventoryLogsPage = ({ isDarkMode }) => {
           </p>
         </div>
         <div className="flex gap-3 items-center">
-          {error && (
-            <span className="text-red-500 text-sm">{error}</span>
-          )}
           <button
             onClick={handleExport}
             disabled={exporting}
@@ -226,6 +225,19 @@ const InventoryLogsPage = ({ isDarkMode }) => {
           </button>
         </div>
       </div>
+
+      {/* Error Display */}
+      <ErrorDisplay 
+        error={loadingError} 
+        onDismiss={() => setLoadingError(null)}
+        isDarkMode={isDarkMode}
+      />
+
+      <ErrorDisplay 
+        error={error ? { message: error } : null} 
+        onDismiss={() => setError(null)}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
