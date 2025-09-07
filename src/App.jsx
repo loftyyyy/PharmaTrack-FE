@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginPage from './components/LoginPage'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
+import SessionExpiryWarning from './components/SessionExpiryWarning'
 
 
 // Import page components
@@ -145,6 +146,9 @@ const ProtectedApp = () => {
   // Show main app if authenticated
   return (
     <div className={`flex h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-pharma-light bg-gray-50'}`}>
+      {/* Session Expiry Warning */}
+      <SessionExpiryWarning />
+      
       <div className="flex flex-1">
         {/* Sidebar */}
         <Sidebar 

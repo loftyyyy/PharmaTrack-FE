@@ -3,10 +3,10 @@ import { API_BASE_URL } from '../utils/config'
 const BASE_URL = API_BASE_URL
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('pharma_token')
+  const accessToken = localStorage.getItem('pharma_access_token')
   return {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
   }
 }
 
@@ -50,8 +50,8 @@ const stockAdjustmentsApi = {
   },
   getById: (id) => request(`/api/v1/stockAdjustments/${id}`, { method: 'GET' }),
   create: async (dto) => {
-    const token = localStorage.getItem('pharma_token')
-    console.log('🔑 Using token for create stock adjustment:', token ? `${token.substring(0, 20)}...` : 'No token found')
+    const accessToken = localStorage.getItem('pharma_access_token')
+    console.log('🔑 Using token for create stock adjustment:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found')
     console.log('📤 Sending stock adjustment data:', JSON.stringify(dto, null, 2))
     
     try {

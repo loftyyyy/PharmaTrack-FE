@@ -5,14 +5,26 @@ import { API_BASE_URL } from '../utils/config'
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL
+    this.logoutCallback = null
+    this.refreshTokenCallback = null
+  }
+
+  // Set logout callback to be called when token expires
+  setLogoutCallback(callback) {
+    this.logoutCallback = callback
+  }
+
+  // Set refresh token callback to be called when token needs refresh
+  setRefreshTokenCallback(callback) {
+    this.refreshTokenCallback = callback
   }
 
   // Get auth headers from localStorage
   getAuthHeaders() {
-    const token = localStorage.getItem('pharma_token')
+    const accessToken = localStorage.getItem('pharma_access_token')
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
     }
   }
 
@@ -29,6 +41,40 @@ class ApiService {
 
     try {
       const response = await fetch(url, config)
+      
+      // Handle token expiration (401 Unauthorized)
+      if (response.status === 401) {
+        console.warn('Access token expired or invalid, attempting refresh...')
+        
+        // Try to refresh token first
+        if (this.refreshTokenCallback) {
+          try {
+            await this.refreshTokenCallback()
+            // Retry the original request with new token
+            const retryConfig = {
+              ...config,
+              headers: {
+                ...this.getAuthHeaders(),
+                ...config.headers,
+              },
+            }
+            const retryResponse = await fetch(url, retryConfig)
+            
+            if (retryResponse.ok) {
+              return retryResponse
+            }
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError)
+          }
+        }
+        
+        // If refresh failed or no callback, trigger logout
+        console.warn('Token refresh failed, triggering auto logout')
+        if (this.logoutCallback) {
+          this.logoutCallback('Session expired. Please log in again.')
+        }
+        throw new Error('Session expired. Please log in again.')
+      }
       
       // Handle different response types
       if (!response.ok) {

@@ -3,10 +3,10 @@ import { API_BASE_URL } from '../utils/config'
 const BASE_URL = API_BASE_URL
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('pharma_token')
+  const accessToken = localStorage.getItem('pharma_access_token')
   return {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
   }
 }
 

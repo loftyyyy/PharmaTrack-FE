@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import productsApi from '../services/productsApi'
 import categoriesApi from '../services/categoriesApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
 
 const AllProductsPage = ({ isDarkMode }) => {
+  const { isAuthenticated } = useAuth()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -71,6 +73,12 @@ const AllProductsPage = ({ isDarkMode }) => {
 
   useEffect(() => {
     const loadData = async () => {
+      // Only load data if user is authenticated
+      if (!isAuthenticated()) {
+        console.log('User not authenticated, skipping data load')
+        return
+      }
+      
       setLoading(true)
       setLoadingError(null)
       try {
@@ -83,7 +91,7 @@ const AllProductsPage = ({ isDarkMode }) => {
       }
     }
     loadData()
-  }, [])
+  }, [isAuthenticated])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

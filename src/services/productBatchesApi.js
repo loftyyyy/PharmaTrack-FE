@@ -11,7 +11,7 @@ export const productBatchesApi = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_access_token')}`
         }
       })
       if (!response.ok) {
@@ -27,15 +27,15 @@ export const productBatchesApi = {
   // Create a new product batch
   create: async (batchData) => {
     try {
-      const token = localStorage.getItem('pharma_token')
-      console.log('🔑 Using token for create batch:', token ? `${token.substring(0, 20)}...` : 'No token found')
+      const accessToken = localStorage.getItem('pharma_access_token')
+      console.log('🔑 Using token for create batch:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found')
       console.log('📤 Sending batch data:', JSON.stringify(batchData, null, 2))
       
       const response = await fetch(`${BASE_URL}/productBatches/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify(batchData)
       })
@@ -68,7 +68,7 @@ export const productBatchesApi = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_access_token')}`
         }
       })
       
@@ -90,7 +90,7 @@ export const productBatchesApi = {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_access_token')}`
         },
         body: JSON.stringify(batchData)
       })
@@ -114,7 +114,7 @@ export const productBatchesApi = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('pharma_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('pharma_access_token')}`
         }
       })
       

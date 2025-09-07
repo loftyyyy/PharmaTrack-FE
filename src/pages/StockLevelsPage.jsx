@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { stockLevelsApi } from '../services/stockLevelsApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 const StockLevelsPage = ({ isDarkMode }) => {
+  const { isAuthenticated } = useAuth()
   const [stockItems, setStockItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -33,8 +35,13 @@ const StockLevelsPage = ({ isDarkMode }) => {
 
   // Load data on component mount
   useEffect(() => {
+    // Only load data if user is authenticated
+    if (!isAuthenticated()) {
+      console.log('User not authenticated, skipping stock levels load')
+      return
+    }
     fetchStockLevels()
-  }, [])
+  }, [isAuthenticated])
 
   const getStockStatus = (item) => {
     if (item.currentStock === 0) return 'out'
