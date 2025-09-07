@@ -5,7 +5,7 @@ import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
 
 const CategoriesPage = ({ isDarkMode }) => {
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -22,8 +22,13 @@ const CategoriesPage = ({ isDarkMode }) => {
 
   // Fetch categories from API
   useEffect(() => {
+    // Only load data if user is authenticated
+    if (!isAuthenticated()) {
+      console.log('User not authenticated, skipping categories load')
+      return
+    }
     fetchCategories()
-  }, [])
+  }, [isAuthenticated])
 
   const fetchCategories = async () => {
     try {

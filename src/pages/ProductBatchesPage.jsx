@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import productsApi from '../services/productsApi'
 import { productBatchesApi } from '../services/productBatchesApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
 
 const ProductBatchesPage = ({ isDarkMode }) => {
+  const { isAuthenticated } = useAuth()
   const [batches, setBatches] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -79,6 +81,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
   // Load data from API
   useEffect(() => {
     const loadData = async () => {
+      // Only load data if user is authenticated
+      if (!isAuthenticated()) {
+        console.log('User not authenticated, skipping product batches load')
+        return
+      }
+      
       setLoading(true)
       setLoadingError(null)
       try {
@@ -91,7 +99,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
       }
     }
     loadData()
-  }, [])
+  }, [isAuthenticated])
 
          const handleSubmit = async (e) => {
        e.preventDefault()

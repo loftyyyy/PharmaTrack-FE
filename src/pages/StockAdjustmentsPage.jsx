@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import productsApi from '../services/productsApi'
 import { productBatchesApi } from '../services/productBatchesApi'
 import stockAdjustmentsApi from '../services/stockAdjustmentsApi'
@@ -48,6 +49,7 @@ const IconArrowRight = ({ className = '' }) => (
 )
 
 const StockAdjustmentsPage = ({ isDarkMode }) => {
+  const { isAuthenticated } = useAuth()
   const [adjustments, setAdjustments] = useState([])
   const [products, setProducts] = useState([])
   const [batches, setBatches] = useState([])
@@ -80,6 +82,12 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
 
   useEffect(() => {
     const loadInitial = async () => {
+      // Only load data if user is authenticated
+      if (!isAuthenticated()) {
+        console.log('User not authenticated, skipping stock adjustments load')
+        return
+      }
+      
       try {
         setLoading(true)
         setError(null)
@@ -118,7 +126,7 @@ const StockAdjustmentsPage = ({ isDarkMode }) => {
       }
     }
     loadInitial()
-  }, [])
+  }, [isAuthenticated])
 
   // Load batches whenever product changes
   useEffect(() => {

@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [showExpiryWarning, setShowExpiryWarning] = useState(false)
   const tokenCheckInterval = useRef(null)
   const warningTimeout = useRef(null)
+  const isRefreshing = useRef(false)
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -104,10 +105,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('pharma_token_expiry')
     localStorage.removeItem('pharma_user')
     
-    // Optional: Show notification to user
-    if (window.alert) {
-      alert(message)
-    }
+    // Silent logout - no alert box
   }, [stopTokenExpiryChecking])
 
   // Check if access token is expired using stored expiry time
@@ -132,14 +130,30 @@ export const AuthProvider = ({ children }) => {
 
   // Handle token refresh
   const handleTokenRefresh = useCallback(async () => {
+    // Prevent multiple simultaneous refresh attempts
+    if (isRefreshing.current) {
+      console.log('🔄 Token refresh already in progress, waiting...')
+      // Wait for ongoing refresh to complete
+      let attempts = 0
+      while (isRefreshing.current && attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        attempts++
+      }
+      return
+    }
+
     if (!refreshToken) {
-      console.warn('No refresh token available, logging out')
+      console.warn('❌ No refresh token available, logging out')
       handleAutoLogout('Session expired. Please log in again.')
       return
     }
 
+    console.log('🔄 Starting token refresh process...')
+    isRefreshing.current = true
+
     try {
       console.log('🔄 Attempting to refresh access token...')
+      console.log('🔄 Current refresh token:', refreshToken ? `${refreshToken.substring(0, 20)}...` : 'NONE')
       
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
@@ -150,16 +164,31 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Token refresh failed with response:', response.status, errorText)
         throw new Error('Token refresh failed')
       }
 
-      const authResponse = await response.json()
-      console.log('✅ Token refresh successful:', authResponse)
+      const tokenResponse = await response.json()
+      console.log('✅ Token refresh successful:', tokenResponse)
 
       // Update tokens and expiry
-      const newAccessToken = authResponse.accessToken
-      const newRefreshToken = authResponse.refreshToken || refreshToken // Keep existing refresh token if not provided
-      const newExpiry = Math.floor(Date.now() / 1000) + (authResponse.expiresIn || 900) // Default 15 minutes
+      const newAccessToken = tokenResponse.accessToken
+      const newRefreshToken = tokenResponse.refreshToken || refreshToken // Keep existing refresh token if not provided
+      const newExpiry = Math.floor(Date.now() / 1000) + (tokenResponse.expiresIn || 900) // Default 15 minutes
+      
+      // Validate new token
+      if (!newAccessToken) {
+        throw new Error('No access token received in refresh response')
+      }
+
+      console.log('🔄 Updating tokens:', {
+        newAccessToken: newAccessToken ? `${newAccessToken.substring(0, 20)}...` : 'NONE',
+        newRefreshToken: newRefreshToken ? `${newRefreshToken.substring(0, 20)}...` : 'NONE',
+        newExpiry,
+        expiresInSeconds: tokenResponse.expiresIn,
+        currentTime: Math.floor(Date.now() / 1000)
+      })
 
       setAccessToken(newAccessToken)
       setRefreshToken(newRefreshToken)
@@ -171,10 +200,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('pharma_refresh_token', newRefreshToken)
       localStorage.setItem('pharma_token_expiry', newExpiry.toString())
 
-      console.log('🔄 Token refresh completed successfully')
+      console.log('✅ Token refresh completed successfully - localStorage updated')
+      console.log('✅ New access token in localStorage:', localStorage.getItem('pharma_access_token') ? 'EXISTS' : 'NOT FOUND')
     } catch (error) {
       console.error('❌ Token refresh failed:', error)
       handleAutoLogout('Session expired. Please log in again.')
+    } finally {
+      isRefreshing.current = false
     }
   }, [refreshToken, handleAutoLogout])
 
@@ -192,25 +224,17 @@ export const AuthProvider = ({ children }) => {
         return
       }
       
-      // Check if token is expiring soon (within 5 minutes)
-      if (isAccessTokenExpiringSoon(5)) {
-        const timeLeft = getAccessTokenTimeUntilExpiry()
-        const minutesLeft = Math.ceil(timeLeft / 60)
+      // Check if token is expiring soon (within 10 seconds for short-lived tokens) and refresh proactively
+      const timeLeft = getAccessTokenTimeUntilExpiry()
+      if (timeLeft > 0 && timeLeft <= 10) {
+        const secondsLeft = timeLeft
         
-        if (!showExpiryWarning) {
-          console.warn(`Access token expires in ${minutesLeft} minutes`)
-          setShowExpiryWarning(true)
-          
-          // Try to refresh token when it's about to expire
-          warningTimeout.current = setTimeout(() => {
-            if (isAccessTokenExpired()) {
-              handleTokenRefresh()
-            }
-          }, timeLeft * 1000)
-        }
+        console.log(`Access token expires in ${secondsLeft} seconds, refreshing proactively...`)
+        handleTokenRefresh()
+        return
       }
-    }, 30000) // Check every 30 seconds
-  }, [accessToken, showExpiryWarning, stopTokenExpiryChecking, isAccessTokenExpired, isAccessTokenExpiringSoon, getAccessTokenTimeUntilExpiry, handleTokenRefresh])
+    }, 5000) // Check every 5 seconds for more responsive token refresh with short-lived tokens
+  }, [accessToken, stopTokenExpiryChecking, isAccessTokenExpired, getAccessTokenTimeUntilExpiry, handleTokenRefresh])
 
   // Auto logout functionality
   useEffect(() => {
@@ -372,10 +396,6 @@ export const AuthProvider = ({ children }) => {
       setRefreshToken(refreshToken)
       setTokenExpiry(tokenExpiry)
       setUser(userData)
-      
-      console.log('=== STORING USER DATA ===')
-      console.log('Setting user state to:', userData)
-      console.log('About to store in localStorage:', JSON.stringify(userData))
       
       // Store in localStorage
       localStorage.setItem('pharma_access_token', accessToken)

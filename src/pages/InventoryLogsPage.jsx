@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 import inventoryLogsApi from '../services/inventoryLogsApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
@@ -55,6 +56,7 @@ const IconDownload = ({ className = '' }) => (
 
 
 const InventoryLogsPage = ({ isDarkMode }) => {
+  const { isAuthenticated } = useAuth()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -65,8 +67,13 @@ const InventoryLogsPage = ({ isDarkMode }) => {
   const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
+    // Only load data if user is authenticated
+    if (!isAuthenticated()) {
+      console.log('User not authenticated, skipping inventory logs load')
+      return
+    }
     loadLogs()
-  }, [])
+  }, [isAuthenticated])
 
   const loadLogs = async () => {
     try {

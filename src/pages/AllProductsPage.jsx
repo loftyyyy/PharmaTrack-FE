@@ -6,7 +6,7 @@ import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
 
 const AllProductsPage = ({ isDarkMode }) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
@@ -73,9 +73,13 @@ const AllProductsPage = ({ isDarkMode }) => {
 
   useEffect(() => {
     const loadData = async () => {
+      // Wait for auth to finish loading
+      if (authLoading) {
+        return
+      }
+      
       // Only load data if user is authenticated
       if (!isAuthenticated()) {
-        console.log('User not authenticated, skipping data load')
         return
       }
       
@@ -91,7 +95,7 @@ const AllProductsPage = ({ isDarkMode }) => {
       }
     }
     loadData()
-  }, [isAuthenticated])
+  }, [isAuthenticated, authLoading])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

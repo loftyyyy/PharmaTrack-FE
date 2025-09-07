@@ -146,9 +146,6 @@ const ProtectedApp = () => {
   // Show main app if authenticated
   return (
     <div className={`flex h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-pharma-light bg-gray-50'}`}>
-      {/* Session Expiry Warning */}
-      <SessionExpiryWarning />
-      
       <div className="flex flex-1">
         {/* Sidebar */}
         <Sidebar 
@@ -182,6 +179,9 @@ const ProtectedApp = () => {
               scrollbarWidth: 'none'
             }}
           >
+            {/* Session Expiry Warning */}
+            <SessionExpiryWarning />
+            
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage isDarkMode={isDarkMode} />} />

@@ -4,7 +4,6 @@ const BASE_URL = API_BASE_URL
 
 function getAuthHeaders() {
   const accessToken = localStorage.getItem('pharma_access_token')
-  console.log('🔑 Categories API - Access token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found')
   return {
     'Content-Type': 'application/json',
     ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),

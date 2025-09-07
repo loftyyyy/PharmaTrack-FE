@@ -22,6 +22,10 @@ class ApiService {
   // Get auth headers from localStorage
   getAuthHeaders() {
     const accessToken = localStorage.getItem('pharma_access_token')
+    console.log('🔑 API Service - Getting auth headers:', {
+      accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'NONE',
+      hasAuth: !!accessToken
+    })
     return {
       'Content-Type': 'application/json',
       ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
@@ -49,7 +53,21 @@ class ApiService {
         // Try to refresh token first
         if (this.refreshTokenCallback) {
           try {
+            console.log('🔄 Attempting token refresh due to 401 response...')
+            // Wait for token refresh to complete
             await this.refreshTokenCallback()
+            
+            // Longer delay to ensure localStorage and state are updated
+            await new Promise(resolve => setTimeout(resolve, 300))
+            
+            // Verify we have a new token
+            const newToken = localStorage.getItem('pharma_access_token')
+            if (!newToken) {
+              console.error('❌ No new token found after refresh')
+              throw new Error('Token refresh failed - no new token')
+            }
+            
+            console.log('🔄 Retrying request with new token...')
             // Retry the original request with new token
             const retryConfig = {
               ...config,
@@ -61,10 +79,17 @@ class ApiService {
             const retryResponse = await fetch(url, retryConfig)
             
             if (retryResponse.ok) {
+              console.log('✅ Request retry successful after token refresh')
               return retryResponse
+            } else if (retryResponse.status === 401) {
+              console.warn('❌ Still getting 401 after token refresh - tokens may be invalid')
+              throw new Error('Authentication failed after token refresh')
+            } else {
+              console.warn('❌ Request retry failed after token refresh:', retryResponse.status)
             }
           } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError)
+            console.error('❌ Token refresh failed:', refreshError)
+            throw refreshError
           }
         }
         
