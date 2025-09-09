@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage'
 import InventoryPage from './pages/InventoryPage'
 import OrdersPage from './pages/OrdersPage'
 import SuppliersPage from './pages/SuppliersPage'
+import ProductSuppliersPage from './pages/ProductSuppliersPage'
 import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
 
@@ -231,15 +232,7 @@ const ProtectedApp = () => {
               } />
               <Route path="/supplier-mapping" element={
                 <ProtectedRoute requiredRole="ADMIN">
-                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-                    <h1 className="text-2xl font-bold">Product-Supplier Mapping</h1>
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Manage which suppliers provide which products with CRUD operations.
-                    </p>
-                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
-                      <p className="text-center text-gray-500">This page is under development.</p>
-                    </div>
-                  </div>
+                  <ProductSuppliersPage isDarkMode={isDarkMode} />
                 </ProtectedRoute>
               } />
               
