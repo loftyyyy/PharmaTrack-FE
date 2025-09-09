@@ -45,7 +45,6 @@ const productSuppliersApi = {
   getById: (id) => request(`/api/v1/productSuppliers/${id}`, { method: 'GET' }),
   create: (productSupplierData) => request('/api/v1/productSuppliers/create', { method: 'POST', body: JSON.stringify(productSupplierData) }),
   update: (id, productSupplierData) => request(`/api/v1/productSuppliers/${id}`, { method: 'PUT', body: JSON.stringify(productSupplierData) }),
-  delete: (id) => request(`/api/v1/productSuppliers/${id}`, { method: 'DELETE' }),
 }
 
 export default productSuppliersApi

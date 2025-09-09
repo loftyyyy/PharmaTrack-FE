@@ -196,20 +196,7 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
     setShowAddModal(true)
   }
 
-  const handleDelete = async (productSupplier) => {
-    if (window.confirm('Are you sure you want to delete this product supplier relationship?')) {
-      try {
-        await productSuppliersApi.delete(productSupplier.productSupplierId)
-        setProductSuppliers(productSuppliers.filter(ps => ps.productSupplierId !== productSupplier.productSupplierId))
-        setSuccess('Product supplier deleted successfully!')
-        setTimeout(() => setSuccess(null), 3000)
-      } catch (err) {
-        console.error('Error deleting product supplier:', err)
-        const errorInfo = getErrorMessage(err)
-        setError(errorInfo.message)
-      }
-    }
-  }
+  // Deletion not allowed for product supplier relationships per policy
 
   if (loading) {
     return (
@@ -416,12 +403,7 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDelete(productSupplier)}
-                        className="px-3 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {/* Delete action removed by policy */}
                     </div>
                   </td>
                 </tr>
