@@ -3,14 +3,16 @@ import { useAuth } from '../context/AuthContext'
 import productSuppliersApi from '../services/productSuppliersApi'
 import productsApi from '../services/productsApi'
 import suppliersApi from '../services/suppliersApi'
+import productBatchesApi from '../services/productBatchesApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
 
 const ProductSuppliersPage = ({ isDarkMode }) => {
-  const { user, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
   const [productSuppliers, setProductSuppliers] = useState([])
   const [products, setProducts] = useState([])
   const [suppliers, setSuppliers] = useState([])
+  const [productIdToBatchNumber, setProductIdToBatchNumber] = useState({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
@@ -70,15 +72,25 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
       setLoadingError(null)
       
       // Fetch all data in parallel
-      const [productSuppliersResponse, productsResponse, suppliersResponse] = await Promise.all([
+      const [productSuppliersResponse, productsResponse, suppliersResponse, batchesResponse] = await Promise.all([
         productSuppliersApi.getAll(),
         productsApi.getAll(),
-        suppliersApi.getAll()
+        suppliersApi.getAll(),
+        productBatchesApi.getAll().catch(() => [])
       ])
       
       setProductSuppliers(productSuppliersResponse || [])
       setProducts(productsResponse || [])
       setSuppliers(suppliersResponse || [])
+      // Map first seen batch number per product for quick display
+      const mapping = {}
+      ;(batchesResponse || []).forEach((batch) => {
+        const pid = batch.product?.id || batch.productId
+        if (pid && !mapping[pid]) {
+          mapping[pid] = batch.batchNumber || '—'
+        }
+      })
+      setProductIdToBatchNumber(mapping)
     } catch (err) {
       console.error('Error fetching data:', err)
       setLoadingError(err)
@@ -219,7 +231,7 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Product Suppliers</h1>
+          <h1 className="text-2xl font-bold">Product Supplier</h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Manage product-supplier relationships and preferences
           </p>
@@ -454,11 +466,15 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
                     }`}
                   >
                     <option value="">Select a product</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} {product.dosageForm && `(${product.dosageForm})`}
-                      </option>
-                    ))}
+                    {products.map((product) => {
+                      const batchNum = productIdToBatchNumber[product.id] || '—'
+                      const sku = product.sku || '—'
+                      return (
+                        <option key={product.id} value={product.id}>
+                          [{batchNum}] - {sku}
+                        </option>
+                      )
+                    })}
                   </select>
                   {formErrors.productId && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.productId}</p>

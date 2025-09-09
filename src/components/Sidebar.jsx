@@ -62,7 +62,7 @@ const Sidebar = ({ isDarkMode }) => {
         key: 'suppliers',
         children: [
           { name: 'All Suppliers', path: '/suppliers' },
-          { name: 'Product-Supplier Mapping', path: '/supplier-mapping' }
+          { name: 'Product Supplier', path: '/supplier-mapping' }
         ]
       })
 
