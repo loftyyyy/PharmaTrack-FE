@@ -283,7 +283,7 @@ const PurchasesPage = ({ isDarkMode }) => {
               <div>
                 <h3 className="text-lg font-semibold">Purchase #{purchase.purchaseId}</h3>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Supplier: {purchase.supplier?.supplierName || 'Unknown'} [{purchase.supplier?.contactPerson || 'No Contact'}]
+                  Supplier: {purchase.supplier?.name || 'Unknown'} [{purchase.supplier?.contactPerson || 'No Contact'}]
                 </p>
               </div>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(purchase.purchaseStatus)}`}>
@@ -407,7 +407,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                     <option value="">Select a supplier</option>
                     {suppliers.map(supplier => (
                       <option key={supplier.supplierId} value={supplier.supplierId}>
-                        {supplier.supplierName} [{supplier.contactPerson || 'No Contact'}]
+                        {supplier.name} [{supplier.contactPerson || 'No Contact'}]
                       </option>
                     ))}
                   </select>
@@ -512,7 +512,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                     <option value="">Select a supplier</option>
                     {suppliers.map(supplier => (
                       <option key={supplier.supplierId} value={supplier.supplierId}>
-                        {supplier.supplierName} [{supplier.contactPerson || 'No Contact'}]
+                        {supplier.name} [{supplier.contactPerson || 'No Contact'}]
                       </option>
                     ))}
                   </select>
