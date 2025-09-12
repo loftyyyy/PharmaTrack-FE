@@ -190,7 +190,7 @@ const PurchasesPage = ({ isDarkMode }) => {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
+          className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
         >
           <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
@@ -381,88 +381,89 @@ const PurchasesPage = ({ isDarkMode }) => {
       {/* Add Purchase Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border-2 border-green-500 ${
+          <div className={`rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
-            <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd"></path>
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold text-green-600">Create New Purchase</h2>
-            </div>
+            <h2 className="text-xl font-bold mb-4">Create New Purchase</h2>
             
-            <form onSubmit={handleCreatePurchase} className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Supplier *
-                </label>
-                <select
-                  value={formData.supplierId}
-                  onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
-                  required
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <option value="">Select a supplier</option>
-                  {suppliers.map(supplier => (
-                    <option key={supplier.supplierId} value={supplier.supplierId}>
-                      {supplier.supplierName} [{supplier.contactPerson || 'No Contact'}]
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleCreatePurchase}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Supplier *
+                  </label>
+                  <select
+                    value={formData.supplierId}
+                    onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Select a supplier</option>
+                    {suppliers.map(supplier => (
+                      <option key={supplier.supplierId} value={supplier.supplierId}>
+                        {supplier.supplierName} [{supplier.contactPerson || 'No Contact'}]
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Total Amount *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.totalAmount}
-                  onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
-                  required
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                  placeholder="0.00"
-                />
-              </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Total Amount *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.totalAmount}
+                    onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="0.00"
+                  />
+                </div>
 
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Purchase Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.purchaseDate}
-                  onChange={(e) => setFormData({...formData, purchaseDate: e.target.value})}
-                  required
-                  max={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                />
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Purchase Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.purchaseDate}
+                    onChange={(e) => setFormData({...formData, purchaseDate: e.target.value})}
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex space-x-3 mt-6">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false)
                     resetForm()
                   }}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                     isDarkMode
                       ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
@@ -472,7 +473,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg transition-all duration-200"
+                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
                 >
                   Create Purchase
                 </button>
@@ -490,69 +491,77 @@ const PurchasesPage = ({ isDarkMode }) => {
           }`}>
             <h2 className="text-xl font-bold mb-4">Edit Purchase #{selectedPurchase.purchaseId}</h2>
             
-            <form onSubmit={handleUpdatePurchase} className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Supplier *
-                </label>
-                <select
-                  value={formData.supplierId}
-                  onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
-                  required
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <option value="">Select a supplier</option>
-                  {suppliers.map(supplier => (
-                    <option key={supplier.supplierId} value={supplier.supplierId}>
-                      {supplier.supplierName} [{supplier.contactPerson || 'No Contact'}]
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleUpdatePurchase}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Supplier *
+                  </label>
+                  <select
+                    value={formData.supplierId}
+                    onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Select a supplier</option>
+                    {suppliers.map(supplier => (
+                      <option key={supplier.supplierId} value={supplier.supplierId}>
+                        {supplier.supplierName} [{supplier.contactPerson || 'No Contact'}]
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Total Amount *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.totalAmount}
-                  onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
-                  required
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                  placeholder="0.00"
-                />
-              </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Total Amount *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.totalAmount}
+                    onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="0.00"
+                  />
+                </div>
 
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Purchase Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.purchaseDate}
-                  onChange={(e) => setFormData({...formData, purchaseDate: e.target.value})}
-                  required
-                  max={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                />
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Purchase Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.purchaseDate}
+                    onChange={(e) => setFormData({...formData, purchaseDate: e.target.value})}
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
               </div>
               
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex space-x-3 mt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -560,7 +569,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                     setSelectedPurchase(null)
                     resetForm()
                   }}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                     isDarkMode
                       ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
@@ -570,7 +579,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all duration-200"
+                  className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
                 >
                   Update Purchase
                 </button>
