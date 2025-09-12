@@ -73,7 +73,7 @@ const Sidebar = ({ isDarkMode }) => {
         dropdown: true,
         key: 'purchases',
         children: [
-          { name: 'Purchase Orders', path: '/purchases' },
+          { name: 'All Purchases', path: '/purchases' },
           { name: 'Purchase Items', path: '/purchase-items' }
         ]
       })
