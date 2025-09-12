@@ -29,6 +29,9 @@ const SuppliersPage = ({ isDarkMode }) => {
   // Form validation
   const [formErrors, setFormErrors] = useState({})
 
+  // Search
+  const [searchTerm, setSearchTerm] = useState('')
+
   const validateForm = () => {
     const errors = {}
     
@@ -219,6 +222,22 @@ const SuppliersPage = ({ isDarkMode }) => {
     return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided'
   }
 
+  const filteredSuppliers = suppliers.filter((s) => {
+    const q = (searchTerm || '').toLowerCase()
+    if (!q) return true
+    const address = [s.addressStreet, s.addressCity, s.addressState, s.addressZipCode]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    return (
+      s.name?.toLowerCase().includes(q) ||
+      s.contactPerson?.toLowerCase().includes(q) ||
+      s.phoneNumber?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q) ||
+      address.includes(q)
+    )
+  })
+
   if (loading) {
     return (
       <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
@@ -302,6 +321,21 @@ const SuppliersPage = ({ isDarkMode }) => {
         isDarkMode={isDarkMode}
       />
 
+      {/* Search */}
+      <div className="flex mb-6">
+        <input
+          type="text"
+          placeholder="Search suppliers by name, contact, phone, email, or address..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+            isDarkMode
+              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+          }`}
+        />
+      </div>
+
       {/* Success Display */}
       {success && (
         <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
@@ -323,17 +357,21 @@ const SuppliersPage = ({ isDarkMode }) => {
       )}
 
       {/* Suppliers Grid */}
-      {suppliers.length === 0 && !loading ? (
+      {filteredSuppliers.length === 0 && !loading ? (
         <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <svg className="mx-auto h-12 w-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
-          <h3 className="text-lg font-medium mb-2">No suppliers found</h3>
-          <p className="text-sm">Get started by adding your first supplier.</p>
+          <h3 className="text-lg font-medium mb-2">
+            {searchTerm ? 'No suppliers match your search' : 'No suppliers found'}
+          </h3>
+          <p className="text-sm">
+            {searchTerm ? 'Try different keywords or clearing the search.' : 'Get started by adding your first supplier.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {suppliers.map((supplier) => (
+          {filteredSuppliers.map((supplier) => (
             <div key={supplier.id} className={`rounded-lg border p-6 ${
               isDarkMode 
                 ? 'bg-gray-800 border-gray-700' 
