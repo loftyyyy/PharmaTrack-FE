@@ -28,6 +28,11 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
     supplierProductCode: ''
   })
 
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterSupplier, setFilterSupplier] = useState('all')
+  const [filterPreferred, setFilterPreferred] = useState('all')
+
   // Form validation
   const [formErrors, setFormErrors] = useState({})
 
@@ -196,6 +201,25 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
     setShowAddModal(true)
   }
 
+  // Filter product suppliers based on search and filter criteria
+  const filteredProductSuppliers = productSuppliers.filter(productSupplier => {
+    const matchesSearch = 
+      productSupplier.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      productSupplier.product?.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      productSupplier.product?.barcode?.includes(searchTerm) ||
+      productSupplier.supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      productSupplier.supplierProductCode?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesSupplier = filterSupplier === 'all' || 
+      productSupplier.supplier?.id === parseInt(filterSupplier)
+    
+    const matchesPreferred = filterPreferred === 'all' || 
+      (filterPreferred === 'preferred' && productSupplier.preferredSupplier) ||
+      (filterPreferred === 'not-preferred' && !productSupplier.preferredSupplier)
+    
+    return matchesSearch && matchesSupplier && matchesPreferred
+  })
+
   // Deletion not allowed for product supplier relationships per policy
 
   if (loading) {
@@ -221,6 +245,10 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
           <h1 className="text-2xl font-bold">Product Supplier</h1>
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Manage product-supplier relationships and preferences
+            {searchTerm || filterSupplier !== 'all' || filterPreferred !== 'all' ? 
+              ` • Showing ${filteredProductSuppliers.length} of ${productSuppliers.length} relationships` : 
+              ''
+            }
           </p>
         </div>
         <div className="flex space-x-3">
@@ -297,14 +325,139 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
         </div>
       )}
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Relationships</p>
+              <p className="text-2xl font-bold">{productSuppliers.length}</p>
+            </div>
+            <div className="text-pharma-teal">
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Preferred Suppliers</p>
+              <p className="text-2xl font-bold text-green-600">
+                {productSuppliers.filter(ps => ps.preferredSupplier).length}
+              </p>
+            </div>
+            <div className="text-green-600">
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unique Products</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {new Set(productSuppliers.map(ps => ps.product?.id)).size}
+              </p>
+            </div>
+            <div className="text-blue-600">
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unique Suppliers</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {new Set(productSuppliers.map(ps => ps.supplier?.id)).size}
+              </p>
+            </div>
+            <div className="text-purple-600">
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Search by product name, SKU, barcode, supplier name, or supplier product code..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            }`}
+          />
+        </div>
+        <div>
+          <select
+            value={filterSupplier}
+            onChange={(e) => setFilterSupplier(e.target.value)}
+            className={`px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          >
+            <option value="all">All Suppliers</option>
+            {suppliers.map((supplier) => (
+              <option key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <select
+            value={filterPreferred}
+            onChange={(e) => setFilterPreferred(e.target.value)}
+            className={`px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          >
+            <option value="all">All Relationships</option>
+            <option value="preferred">Preferred Only</option>
+            <option value="not-preferred">Not Preferred</option>
+          </select>
+        </div>
+      </div>
+
       {/* Product Suppliers Table */}
-      {productSuppliers.length === 0 && !loading ? (
+      {filteredProductSuppliers.length === 0 && !loading ? (
         <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <svg className="mx-auto h-12 w-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
           </svg>
-          <h3 className="text-lg font-medium mb-2">No product suppliers found</h3>
-          <p className="text-sm">Get started by adding your first product supplier relationship.</p>
+          <h3 className="text-lg font-medium mb-2">
+            {searchTerm || filterSupplier !== 'all' || filterPreferred !== 'all' 
+              ? 'No product suppliers found matching your criteria' 
+              : 'No product suppliers found'
+            }
+          </h3>
+          <p className="text-sm">
+            {searchTerm || filterSupplier !== 'all' || filterPreferred !== 'all'
+              ? 'Try adjusting your search terms or filters.'
+              : 'Get started by adding your first product supplier relationship.'
+            }
+          </p>
         </div>
       ) : (
         <div className={`overflow-x-auto rounded-lg border ${
@@ -341,7 +494,7 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
               </tr>
             </thead>
             <tbody className={`divide-y ${isDarkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
-              {productSuppliers.map((productSupplier) => (
+              {filteredProductSuppliers.map((productSupplier) => (
                 <tr key={productSupplier.productSupplierId} className={
                   isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
                 }>
@@ -349,9 +502,17 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
                     <div className="text-sm font-medium">
                       {productSupplier.product?.name || 'N/A'}
                     </div>
+                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      SKU: {productSupplier.product?.sku || 'N/A'} • Barcode: {productSupplier.product?.barcode || 'N/A'}
+                    </div>
                     {productSupplier.product?.dosageForm && (
                       <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {productSupplier.product.dosageForm}
+                        {productSupplier.product.dosageForm} • {productSupplier.product.strength || 'N/A'}
+                      </div>
+                    )}
+                    {productIdToBatchNumber[productSupplier.product?.id] && (
+                      <div className={`text-xs ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                        Batch: {productIdToBatchNumber[productSupplier.product.id]}
                       </div>
                     )}
                   </td>
