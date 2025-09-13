@@ -99,7 +99,42 @@ const PurchasesPage = ({ isDarkMode }) => {
     e.preventDefault()
     try {
       setError(null)
-      await purchasesApi.create(formData)
+      
+      // Validate required fields
+      if (!formData.supplierId) {
+        setError('Please select a supplier')
+        return
+      }
+
+      if (!formData.totalAmount || parseFloat(formData.totalAmount) < 0) {
+        setError('Please enter a valid total amount (must be at least 0.00)')
+        return
+      }
+
+      if (!formData.purchaseDate) {
+        setError('Please select a purchase date')
+        return
+      }
+
+      // Validate that we have at least one purchase item
+      if (!formData.purchaseItems || formData.purchaseItems.length === 0) {
+        setError('Please add at least one purchase item')
+        return
+      }
+
+      // Format data according to PurchaseCreateDTO structure
+      const purchaseData = {
+        supplierId: parseInt(formData.supplierId),
+        totalAmount: parseFloat(formData.totalAmount),
+        purchaseDate: formData.purchaseDate,
+        purchaseItems: formData.purchaseItems.map(item => ({
+          productBatchId: item.productBatchId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice
+        }))
+      }
+
+      await purchasesApi.create(purchaseData)
       setSuccess('Purchase created successfully!')
       setShowAddModal(false)
       resetForm()
@@ -175,21 +210,42 @@ const PurchasesPage = ({ isDarkMode }) => {
       return
     }
 
+    // Validate quantity (must be at least 1)
+    const quantity = parseInt(newPurchaseItem.quantity)
+    if (quantity < 1) {
+      setError('Quantity must be at least 1')
+      return
+    }
+
+    // Validate unit price (must be positive)
+    const unitPrice = parseFloat(newPurchaseItem.unitPrice)
+    if (unitPrice < 0) {
+      setError('Unit price must be a positive value')
+      return
+    }
+
     const selectedProduct = products.find(p => p.productId === parseInt(newPurchaseItem.productId))
     const selectedBatch = productBatches.find(b => b.productBatchId === parseInt(newPurchaseItem.productBatchId))
 
+    // Create purchase item matching PurchaseItemCreateDTO structure
     const purchaseItem = {
-      productId: parseInt(newPurchaseItem.productId),
       productBatchId: parseInt(newPurchaseItem.productBatchId),
-      quantity: parseInt(newPurchaseItem.quantity),
-      unitPrice: parseFloat(newPurchaseItem.unitPrice),
+      quantity: quantity,
+      unitPrice: unitPrice
+      // Note: purchaseId will be set when the purchase is created
+    }
+
+    // For display purposes, we'll store additional info separately
+    const displayItem = {
+      ...purchaseItem,
+      productId: parseInt(newPurchaseItem.productId),
       productName: selectedProduct?.name || 'Unknown Product',
       batchNumber: selectedBatch?.batchNumber || 'Unknown Batch'
     }
 
     setFormData({
       ...formData,
-      purchaseItems: [...formData.purchaseItems, purchaseItem]
+      purchaseItems: [...formData.purchaseItems, displayItem]
     })
 
     // Reset the new purchase item form
@@ -200,6 +256,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       unitPrice: ''
     })
     setProductBatches([])
+    setError(null) // Clear any previous errors
   }
 
   const removePurchaseItem = (index) => {
