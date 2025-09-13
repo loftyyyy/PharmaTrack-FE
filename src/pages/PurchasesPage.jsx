@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import purchasesApi from '../services/purchasesApi'
 import suppliersApi from '../services/suppliersApi'
 import productsApi from '../services/productsApi'
 
 const PurchasesPage = ({ isDarkMode }) => {
+  const navigate = useNavigate()
   const [purchases, setPurchases] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [products, setProducts] = useState([])
@@ -309,6 +311,14 @@ const PurchasesPage = ({ isDarkMode }) => {
     })
   }
 
+  const handleCreateProduct = () => {
+    navigate('/all-products')
+  }
+
+  const handleCreateSupplier = () => {
+    navigate('/suppliers')
+  }
+
   const openEditModal = (purchase) => {
     setSelectedPurchase(purchase)
     setFormData({
@@ -578,23 +588,39 @@ const PurchasesPage = ({ isDarkMode }) => {
                     }`}>
                       Supplier *
                     </label>
-                    <select
-                      value={formData.supplierId}
-                      onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
-                      required
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
-                          ? 'bg-gray-600 border-gray-500 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="">Select a supplier</option>
-                      {suppliers.map(supplier => (
-                        <option key={supplier.supplierId} value={supplier.supplierId}>
-                          {supplier.name} [{supplier.contactPerson || 'No Contact'}]
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        value={formData.supplierId}
+                        onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                        required
+                        className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      >
+                        <option value="">Select a supplier</option>
+                        {suppliers.map(supplier => (
+                          <option key={supplier.supplierId} value={supplier.supplierId}>
+                            {supplier.name} [{supplier.contactPerson || 'No Contact'}]
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleCreateSupplier}
+                        className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                          isDarkMode
+                            ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                            : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                        }`}
+                        title="Create new supplier"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -655,22 +681,38 @@ const PurchasesPage = ({ isDarkMode }) => {
                       }`}>
                         Product *
                       </label>
-                      <select
-                        value={newPurchaseItem.productId}
-                        onChange={(e) => handleProductChange(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                      >
-                        <option value="">Select product</option>
-                        {products.map(product => (
-                          <option key={product.productId} value={product.productId}>
-                            {product.sku} [{product.barcode}] - {product.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex gap-2">
+                        <select
+                          value={newPurchaseItem.productId}
+                          onChange={(e) => handleProductChange(e.target.value)}
+                          className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        >
+                          <option value="">Select product</option>
+                          {products.map(product => (
+                            <option key={product.productId} value={product.productId}>
+                              {product.sku} [{product.barcode}] - {product.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={handleCreateProduct}
+                          className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                            isDarkMode
+                              ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                              : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                          }`}
+                          title="Create new product"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
 
                     <div>
