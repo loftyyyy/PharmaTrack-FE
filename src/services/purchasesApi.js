@@ -43,7 +43,7 @@ const purchasesApi = {
     return request(`/api/v1/purchases${queryString}`, { method: 'GET' })
   },
   getById: (id) => request(`/api/v1/purchases/${id}`, { method: 'GET' }),
-  create: (purchaseData) => request('/api/v1/purchases', { method: 'POST', body: JSON.stringify(purchaseData) }),
+  create: (purchaseData) => request('/api/v1/purchases/create', { method: 'POST', body: JSON.stringify(purchaseData) }),
   update: (id, purchaseData) => request(`/api/v1/purchases/${id}`, { method: 'PUT', body: JSON.stringify(purchaseData) }),
   delete: (id) => request(`/api/v1/purchases/${id}`, { method: 'DELETE' }),
   updateStatus: (id, status) => request(`/api/v1/purchases/${id}/status`, { method: 'PATCH', body: JSON.stringify({ purchaseStatus: status }) }),

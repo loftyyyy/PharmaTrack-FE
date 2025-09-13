@@ -60,6 +60,7 @@ const PurchasesPage = ({ isDarkMode }) => {
   const loadSuppliers = async () => {
     try {
       const data = await suppliersApi.getAll()
+      console.log('Loaded suppliers:', data)
       setSuppliers(data)
     } catch (err) {
       console.error('Error loading suppliers:', err)
@@ -92,7 +93,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       setError(null)
       
       // Validate required fields
-      if (!formData.supplierId) {
+      if (!formData.supplierId || formData.supplierId === '') {
         setError('Please select a supplier')
         return
       }
@@ -113,9 +114,16 @@ const PurchasesPage = ({ isDarkMode }) => {
         return
       }
 
+      // Validate supplierId is a valid number
+      const supplierId = parseInt(formData.supplierId)
+      if (isNaN(supplierId) || supplierId <= 0) {
+        setError('Invalid supplier selected')
+        return
+      }
+
       // Format data according to PurchaseCreateDTO structure
       const purchaseData = {
-        supplierId: parseInt(formData.supplierId),
+        supplierId: supplierId,
         totalAmount: parseFloat(formData.totalAmount),
         purchaseDate: formData.purchaseDate,
         purchaseItems: formData.purchaseItems.map(item => ({
@@ -124,6 +132,10 @@ const PurchasesPage = ({ isDarkMode }) => {
           unitPrice: item.unitPrice
         }))
       }
+
+      // Debug logging
+      console.log('Form data:', formData)
+      console.log('Purchase data being sent:', purchaseData)
 
       await purchasesApi.create(purchaseData)
       setSuccess('Purchase created successfully!')
@@ -591,7 +603,10 @@ const PurchasesPage = ({ isDarkMode }) => {
                     <div className="flex gap-2">
                       <select
                         value={formData.supplierId}
-                        onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                        onChange={(e) => {
+                          console.log('Supplier selected:', e.target.value)
+                          setFormData({...formData, supplierId: e.target.value})
+                        }}
                         required
                         className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                           isDarkMode
@@ -600,8 +615,8 @@ const PurchasesPage = ({ isDarkMode }) => {
                         }`}
                       >
                         <option value="">Select a supplier</option>
-                        {suppliers.map(supplier => (
-                          <option key={supplier.supplierId} value={supplier.supplierId}>
+                        {suppliers.map((supplier, index) => (
+                          <option key={supplier.supplierId || `supplier-${index}`} value={supplier.supplierId}>
                             {supplier.name} [{supplier.contactPerson || 'No Contact'}]
                           </option>
                         ))}
@@ -692,8 +707,8 @@ const PurchasesPage = ({ isDarkMode }) => {
                           }`}
                         >
                           <option value="">Select product</option>
-                          {products.map(product => (
-                            <option key={product.productId} value={product.productId}>
+                          {products.map((product, index) => (
+                            <option key={product.productId || `product-${index}`} value={product.productId}>
                               {product.sku} [{product.barcode}] - {product.name}
                             </option>
                           ))}
@@ -967,8 +982,8 @@ const PurchasesPage = ({ isDarkMode }) => {
                     }`}
                   >
                     <option value="">Select a supplier</option>
-                    {suppliers.map(supplier => (
-                      <option key={supplier.supplierId} value={supplier.supplierId}>
+                    {suppliers.map((supplier, index) => (
+                      <option key={supplier.supplierId || `edit-supplier-${index}`} value={supplier.supplierId}>
                         {supplier.name} [{supplier.contactPerson || 'No Contact'}]
                       </option>
                     ))}
