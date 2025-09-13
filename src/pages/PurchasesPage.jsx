@@ -60,7 +60,6 @@ const PurchasesPage = ({ isDarkMode }) => {
   const loadSuppliers = async () => {
     try {
       const data = await suppliersApi.getAll()
-      console.log('Loaded suppliers:', data)
       setSuppliers(data)
     } catch (err) {
       console.error('Error loading suppliers:', err)
@@ -126,18 +125,30 @@ const PurchasesPage = ({ isDarkMode }) => {
         supplierId: supplierId,
         totalAmount: parseFloat(formData.totalAmount),
         purchaseDate: formData.purchaseDate,
-        purchaseItems: formData.purchaseItems.map(item => ({
-          productBatch: item.productBatch,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice
-        }))
+        purchaseItems: formData.purchaseItems.map(item => {
+          // Validate that productBatch has all required fields
+          if (!item.productBatch.productId || !item.productBatch.batchNumber) {
+            throw new Error('Invalid product batch data: missing productId or batchNumber')
+          }
+          
+          return {
+            productBatch: {
+              productId: parseInt(item.productBatch.productId),
+              batchNumber: item.productBatch.batchNumber,
+              quantity: parseInt(item.productBatch.quantity),
+              purchasePricePerUnit: parseFloat(item.productBatch.purchasePricePerUnit),
+              expiryDate: item.productBatch.expiryDate,
+              manufacturingDate: item.productBatch.manufacturingDate,
+              location: item.productBatch.location || null
+            },
+            quantity: parseInt(item.quantity),
+            unitPrice: parseFloat(item.unitPrice)
+          }
+        })
       }
 
-      // Debug logging
-      console.log('Form data:', formData)
-      console.log('Purchase data being sent:', purchaseData)
-
       await purchasesApi.create(purchaseData)
+      
       setSuccess('Purchase created successfully!')
       setShowAddModal(false)
       resetForm()
@@ -603,10 +614,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                     <div className="flex gap-2">
                       <select
                         value={formData.supplierId}
-                        onChange={(e) => {
-                          console.log('Supplier selected:', e.target.value)
-                          setFormData({...formData, supplierId: e.target.value})
-                        }}
+                        onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
                         required
                         className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                           isDarkMode
@@ -616,7 +624,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                       >
                         <option value="">Select a supplier</option>
                         {suppliers.map((supplier, index) => (
-                          <option key={supplier.supplierId || `supplier-${index}`} value={supplier.supplierId}>
+                          <option key={supplier.supplierId || supplier.id || `supplier-${index}`} value={supplier.supplierId || supplier.id}>
                             {supplier.name} [{supplier.contactPerson || 'No Contact'}]
                           </option>
                         ))}
@@ -880,8 +888,11 @@ const PurchasesPage = ({ isDarkMode }) => {
                     <button
                       type="button"
                       onClick={addPurchaseItem}
-                      className="bg-pharma-teal text-white px-6 py-2 rounded-lg hover:bg-pharma-medium transition-colors"
+                      className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-8 py-3 rounded-lg hover:from-pharma-medium hover:to-pharma-teal hover:shadow-lg transition-all duration-200 font-medium"
                     >
+                      <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                      </svg>
                       Add Item
                     </button>
                   </div>
@@ -983,7 +994,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                   >
                     <option value="">Select a supplier</option>
                     {suppliers.map((supplier, index) => (
-                      <option key={supplier.supplierId || `edit-supplier-${index}`} value={supplier.supplierId}>
+                      <option key={supplier.supplierId || supplier.id || `edit-supplier-${index}`} value={supplier.supplierId || supplier.id}>
                         {supplier.name} [{supplier.contactPerson || 'No Contact'}]
                       </option>
                     ))}
