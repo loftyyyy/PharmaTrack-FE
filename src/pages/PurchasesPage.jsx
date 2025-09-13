@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react'
 import purchasesApi from '../services/purchasesApi'
 import suppliersApi from '../services/suppliersApi'
 import productsApi from '../services/productsApi'
-import productBatchesApi from '../services/productBatchesApi'
 
 const PurchasesPage = ({ isDarkMode }) => {
   const [purchases, setPurchases] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [products, setProducts] = useState([])
-  const [productBatches, setProductBatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -28,9 +26,13 @@ const PurchasesPage = ({ isDarkMode }) => {
   // State for managing purchase items in the form
   const [newPurchaseItem, setNewPurchaseItem] = useState({
     productId: '',
-    productBatchId: '',
+    batchNumber: '',
     quantity: '',
-    unitPrice: ''
+    unitPrice: '',
+    purchasePricePerUnit: '',
+    expiryDate: '',
+    manufacturingDate: '',
+    location: ''
   })
 
   // Load purchases, suppliers, and products
@@ -71,19 +73,6 @@ const PurchasesPage = ({ isDarkMode }) => {
     }
   }
 
-  const loadProductBatches = async (productId) => {
-    try {
-      if (!productId) {
-        setProductBatches([])
-        return
-      }
-      const data = await productBatchesApi.getByProductId(productId)
-      setProductBatches(data)
-    } catch (err) {
-      console.error('Error loading product batches:', err)
-      setProductBatches([])
-    }
-  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -128,7 +117,7 @@ const PurchasesPage = ({ isDarkMode }) => {
         totalAmount: parseFloat(formData.totalAmount),
         purchaseDate: formData.purchaseDate,
         purchaseItems: formData.purchaseItems.map(item => ({
-          productBatchId: item.productBatchId,
+          productBatch: item.productBatch,
           quantity: item.quantity,
           unitPrice: item.unitPrice
         }))
@@ -197,16 +186,22 @@ const PurchasesPage = ({ isDarkMode }) => {
     })
     setNewPurchaseItem({
       productId: '',
-      productBatchId: '',
+      batchNumber: '',
       quantity: '',
-      unitPrice: ''
+      unitPrice: '',
+      purchasePricePerUnit: '',
+      expiryDate: '',
+      manufacturingDate: '',
+      location: ''
     })
-    setProductBatches([])
   }
 
   const addPurchaseItem = () => {
-    if (!newPurchaseItem.productId || !newPurchaseItem.productBatchId || !newPurchaseItem.quantity || !newPurchaseItem.unitPrice) {
-      setError('Please fill in all purchase item fields')
+    // Validate required fields
+    if (!newPurchaseItem.productId || !newPurchaseItem.batchNumber || !newPurchaseItem.quantity || 
+        !newPurchaseItem.unitPrice || !newPurchaseItem.purchasePricePerUnit || 
+        !newPurchaseItem.expiryDate || !newPurchaseItem.manufacturingDate) {
+      setError('Please fill in all required purchase item fields')
       return
     }
 
@@ -224,12 +219,49 @@ const PurchasesPage = ({ isDarkMode }) => {
       return
     }
 
+    // Validate purchase price per unit (must be positive)
+    const purchasePricePerUnit = parseFloat(newPurchaseItem.purchasePricePerUnit)
+    if (purchasePricePerUnit <= 0) {
+      setError('Purchase price per unit must be greater than 0')
+      return
+    }
+
+    // Validate batch number length
+    if (newPurchaseItem.batchNumber.length > 100) {
+      setError('Batch number must not exceed 100 characters')
+      return
+    }
+
+    // Validate location length if provided
+    if (newPurchaseItem.location && newPurchaseItem.location.length > 50) {
+      setError('Location must not exceed 50 characters')
+      return
+    }
+
+    // Validate date logic
+    const manufacturingDate = new Date(newPurchaseItem.manufacturingDate)
+    const expiryDate = new Date(newPurchaseItem.expiryDate)
+    if (manufacturingDate >= expiryDate) {
+      setError('Manufacturing date must be before expiry date')
+      return
+    }
+
     const selectedProduct = products.find(p => p.productId === parseInt(newPurchaseItem.productId))
-    const selectedBatch = productBatches.find(b => b.productBatchId === parseInt(newPurchaseItem.productBatchId))
+
+    // Create ProductBatchCreateDTO
+    const productBatch = {
+      productId: parseInt(newPurchaseItem.productId),
+      batchNumber: newPurchaseItem.batchNumber,
+      quantity: quantity,
+      purchasePricePerUnit: purchasePricePerUnit,
+      expiryDate: newPurchaseItem.expiryDate,
+      manufacturingDate: newPurchaseItem.manufacturingDate,
+      location: newPurchaseItem.location || null
+    }
 
     // Create purchase item matching PurchaseItemCreateDTO structure
     const purchaseItem = {
-      productBatchId: parseInt(newPurchaseItem.productBatchId),
+      productBatch: productBatch,
       quantity: quantity,
       unitPrice: unitPrice
       // Note: purchaseId will be set when the purchase is created
@@ -240,7 +272,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       ...purchaseItem,
       productId: parseInt(newPurchaseItem.productId),
       productName: selectedProduct?.name || 'Unknown Product',
-      batchNumber: selectedBatch?.batchNumber || 'Unknown Batch'
+      batchNumber: newPurchaseItem.batchNumber
     }
 
     setFormData({
@@ -251,11 +283,14 @@ const PurchasesPage = ({ isDarkMode }) => {
     // Reset the new purchase item form
     setNewPurchaseItem({
       productId: '',
-      productBatchId: '',
+      batchNumber: '',
       quantity: '',
-      unitPrice: ''
+      unitPrice: '',
+      purchasePricePerUnit: '',
+      expiryDate: '',
+      manufacturingDate: '',
+      location: ''
     })
-    setProductBatches([])
     setError(null) // Clear any previous errors
   }
 
@@ -270,10 +305,8 @@ const PurchasesPage = ({ isDarkMode }) => {
   const handleProductChange = (productId) => {
     setNewPurchaseItem({
       ...newPurchaseItem,
-      productId,
-      productBatchId: ''
+      productId
     })
-    loadProductBatches(productId)
   }
 
   const openEditModal = (purchase) => {
@@ -613,102 +646,184 @@ const PurchasesPage = ({ isDarkMode }) => {
                 <h3 className="text-lg font-semibold mb-4">Purchase Items</h3>
                 
                 {/* Add New Item Form */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Product *
-                    </label>
-                    <select
-                      value={newPurchaseItem.productId}
-                      onChange={(e) => handleProductChange(e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
-                          ? 'bg-gray-600 border-gray-500 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="">Select product</option>
-                      {products.map(product => (
-                        <option key={product.productId} value={product.productId}>
-                          {product.sku} [{product.barcode}] - {product.name}
-                        </option>
-                      ))}
-                    </select>
+                <div className="space-y-4 mb-4">
+                  {/* First Row: Product and Batch Number */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Product *
+                      </label>
+                      <select
+                        value={newPurchaseItem.productId}
+                        onChange={(e) => handleProductChange(e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      >
+                        <option value="">Select product</option>
+                        {products.map(product => (
+                          <option key={product.productId} value={product.productId}>
+                            {product.sku} [{product.barcode}] - {product.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Batch Number *
+                      </label>
+                      <input
+                        type="text"
+                        maxLength="100"
+                        value={newPurchaseItem.batchNumber}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, batchNumber: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                        placeholder="Enter batch number"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Batch *
-                    </label>
-                    <select
-                      value={newPurchaseItem.productBatchId}
-                      onChange={(e) => setNewPurchaseItem({...newPurchaseItem, productBatchId: e.target.value})}
-                      disabled={!newPurchaseItem.productId}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
-                          ? 'bg-gray-600 border-gray-500 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } ${!newPurchaseItem.productId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <option value="">Select batch</option>
-                      {productBatches.map(batch => (
-                        <option key={batch.productBatchId} value={batch.productBatchId}>
-                          {batch.batchNumber}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Second Row: Quantity, Unit Price, Purchase Price */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Quantity *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newPurchaseItem.quantity}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, quantity: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                        placeholder="1"
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Unit Price *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={newPurchaseItem.unitPrice}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, unitPrice: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Purchase Price Per Unit *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={newPurchaseItem.purchasePricePerUnit}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, purchasePricePerUnit: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                        placeholder="0.00"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Quantity *
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newPurchaseItem.quantity}
-                      onChange={(e) => setNewPurchaseItem({...newPurchaseItem, quantity: e.target.value})}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
-                          ? 'bg-gray-600 border-gray-500 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                      placeholder="1"
-                    />
+                  {/* Third Row: Manufacturing Date, Expiry Date, Location */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Manufacturing Date *
+                      </label>
+                      <input
+                        type="date"
+                        value={newPurchaseItem.manufacturingDate}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, manufacturingDate: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Expiry Date *
+                      </label>
+                      <input
+                        type="date"
+                        value={newPurchaseItem.expiryDate}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, expiryDate: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        Location (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength="50"
+                        value={newPurchaseItem.location}
+                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, location: e.target.value})}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          isDarkMode
+                            ? 'bg-gray-600 border-gray-500 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                        placeholder="Enter location (optional)"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Unit Price *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={newPurchaseItem.unitPrice}
-                      onChange={(e) => setNewPurchaseItem({...newPurchaseItem, unitPrice: e.target.value})}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
-                          ? 'bg-gray-600 border-gray-500 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="flex items-end">
+                  {/* Add Item Button */}
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={addPurchaseItem}
-                      className="w-full bg-pharma-teal text-white px-4 py-2 rounded-lg hover:bg-pharma-medium transition-colors"
+                      className="bg-pharma-teal text-white px-6 py-2 rounded-lg hover:bg-pharma-medium transition-colors"
                     >
                       Add Item
                     </button>
@@ -721,28 +836,33 @@ const PurchasesPage = ({ isDarkMode }) => {
                     <h4 className="font-medium mb-2">Added Items:</h4>
                     <div className="space-y-2">
                       {formData.purchaseItems.map((item, index) => (
-                        <div key={index} className={`flex justify-between items-center py-2 px-3 rounded ${
+                        <div key={index} className={`py-3 px-4 rounded ${
                           isDarkMode ? 'bg-gray-600' : 'bg-white'
                         }`}>
-                          <div className="flex-1">
-                            <span className="font-medium">{item.productName}</span>
-                            <span className={`ml-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Batch: {item.batchNumber} | Qty: {item.quantity} | ${item.unitPrice.toFixed(2)}/unit
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">
-                              ${(item.quantity * item.unitPrice).toFixed(2)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => removePurchaseItem(index)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                              </svg>
-                            </button>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <span className="font-medium text-lg">{item.productName}</span>
+                              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                                <div>Batch: {item.batchNumber}</div>
+                                <div>Qty: {item.quantity} | Unit Price: ${item.unitPrice.toFixed(2)} | Purchase Price: ${item.productBatch.purchasePricePerUnit.toFixed(2)}</div>
+                                <div>Manufacturing: {new Date(item.productBatch.manufacturingDate).toLocaleDateString()} | Expiry: {new Date(item.productBatch.expiryDate).toLocaleDateString()}</div>
+                                {item.productBatch.location && <div>Location: {item.productBatch.location}</div>}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-lg">
+                                ${(item.quantity * item.unitPrice).toFixed(2)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removePurchaseItem(index)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
