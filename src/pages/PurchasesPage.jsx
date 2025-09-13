@@ -692,210 +692,223 @@ const PurchasesPage = ({ isDarkMode }) => {
 
               {/* Purchase Items Section */}
               <div className={`rounded-lg p-4 mb-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <h3 className="text-lg font-semibold mb-4">Purchase Items</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Purchase Items</h3>
+                  <div className={`px-2 py-1 rounded text-sm ${
+                    formData.purchaseItems.length > 0 
+                      ? isDarkMode 
+                        ? 'bg-green-900 text-green-400' 
+                        : 'bg-green-100 text-green-800'
+                      : isDarkMode 
+                        ? 'bg-gray-600 text-gray-400' 
+                        : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {formData.purchaseItems.length} item{formData.purchaseItems.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
                 
                 {/* Add New Item Form */}
                 <div className="space-y-4 mb-4">
-                  {/* First Row: Product and Batch Number */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Product *
-                      </label>
-                      <div className="flex gap-2">
-                        <select
-                          value={newPurchaseItem.productId}
-                          onChange={(e) => handleProductChange(e.target.value)}
-                          className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    {/* First Row: Product and Batch Number */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Product *
+                        </label>
+                        <div className="flex gap-2">
+                          <select
+                            value={newPurchaseItem.productId}
+                            onChange={(e) => handleProductChange(e.target.value)}
+                            className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                              isDarkMode
+                                ? 'bg-gray-600 border-gray-500 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                          >
+                            <option value="">Select product</option>
+                            {products.map((product, index) => (
+                              <option key={product.productId || `product-${index}`} value={product.productId}>
+                                {product.sku} [{product.barcode}] - {product.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleCreateProduct}
+                            className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                              isDarkMode
+                                ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                                : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                            }`}
+                            title="Create new product"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Batch Number *
+                        </label>
+                        <input
+                          type="text"
+                          maxLength="100"
+                          value={newPurchaseItem.batchNumber}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, batchNumber: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                             isDarkMode
                               ? 'bg-gray-600 border-gray-500 text-white'
                               : 'bg-white border-gray-300 text-gray-900'
                           }`}
-                        >
-                          <option value="">Select product</option>
-                          {products.map((product, index) => (
-                            <option key={product.productId || `product-${index}`} value={product.productId}>
-                              {product.sku} [{product.barcode}] - {product.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={handleCreateProduct}
-                          className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                            isDarkMode
-                              ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
-                              : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
-                          }`}
-                          title="Create new product"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                          </svg>
-                        </button>
+                          placeholder="Enter batch number"
+                        />
                       </div>
                     </div>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Batch Number *
-                      </label>
-                      <input
-                        type="text"
-                        maxLength="100"
-                        value={newPurchaseItem.batchNumber}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, batchNumber: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="Enter batch number"
-                      />
-                    </div>
-                  </div>
+                    {/* Second Row: Quantity, Unit Price, Purchase Price */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Quantity *
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={newPurchaseItem.quantity}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, quantity: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                          placeholder="1"
+                        />
+                      </div>
 
-                  {/* Second Row: Quantity, Unit Price, Purchase Price */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Quantity *
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={newPurchaseItem.quantity}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, quantity: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="1"
-                      />
-                    </div>
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Unit Price *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newPurchaseItem.unitPrice}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, unitPrice: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                          placeholder="0.00"
+                        />
+                      </div>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Unit Price *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={newPurchaseItem.unitPrice}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, unitPrice: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="0.00"
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Purchase Price Per Unit *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        value={newPurchaseItem.purchasePricePerUnit}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, purchasePricePerUnit: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Third Row: Manufacturing Date, Expiry Date, Location */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Manufacturing Date *
-                      </label>
-                      <input
-                        type="date"
-                        value={newPurchaseItem.manufacturingDate}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, manufacturingDate: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                      />
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Purchase Price Per Unit *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={newPurchaseItem.purchasePricePerUnit}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, purchasePricePerUnit: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Expiry Date *
-                      </label>
-                      <input
-                        type="date"
-                        value={newPurchaseItem.expiryDate}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, expiryDate: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                      />
+                    {/* Third Row: Manufacturing Date, Expiry Date, Location */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Manufacturing Date *
+                        </label>
+                        <input
+                          type="date"
+                          value={newPurchaseItem.manufacturingDate}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, manufacturingDate: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Expiry Date *
+                        </label>
+                        <input
+                          type="date"
+                          value={newPurchaseItem.expiryDate}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, expiryDate: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Location (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength="50"
+                          value={newPurchaseItem.location}
+                          onChange={(e) => setNewPurchaseItem({...newPurchaseItem, location: e.target.value})}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                            isDarkMode
+                              ? 'bg-gray-600 border-gray-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                          placeholder="Enter location (optional)"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        Location (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        maxLength="50"
-                        value={newPurchaseItem.location}
-                        onChange={(e) => setNewPurchaseItem({...newPurchaseItem, location: e.target.value})}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
-                            ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                        placeholder="Enter location (optional)"
-                      />
+                    {/* Add Item Button */}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={addPurchaseItem}
+                        className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-8 py-3 rounded-lg hover:from-pharma-medium hover:to-pharma-teal hover:shadow-lg transition-all duration-200 font-medium"
+                      >
+                        <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Item
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Add Item Button */}
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={addPurchaseItem}
-                      className="bg-gradient-to-r from-pharma-teal to-pharma-medium text-white px-8 py-3 rounded-lg hover:from-pharma-medium hover:to-pharma-teal hover:shadow-lg transition-all duration-200 font-medium"
-                    >
-                      <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                      </svg>
-                      Add Item
-                    </button>
-                  </div>
                 </div>
 
                 {/* Added Items List */}
