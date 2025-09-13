@@ -13,7 +13,8 @@ const PurchasesPage = ({ isDarkMode }) => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedPurchase, setSelectedPurchase] = useState(null)
-  const [filter, setFilter] = useState('all')
+  const [editingItemIndex, setEditingItemIndex] = useState(null)
+  const [editingItem, setEditingItem] = useState({ quantity: '', unitPrice: '' })
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
@@ -76,15 +77,6 @@ const PurchasesPage = ({ isDarkMode }) => {
   }
 
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'DELIVERED': return 'bg-green-100 text-green-800'
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800'
-      case 'ORDERED': return 'bg-blue-100 text-blue-800'
-      case 'CANCELLED': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const handleCreatePurchase = async (e) => {
     e.preventDefault()
@@ -193,7 +185,13 @@ const PurchasesPage = ({ isDarkMode }) => {
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       setError(null)
-      await purchasesApi.updateStatus(id, newStatus)
+      
+      // Prepare the PurchaseUpdateDTO data
+      const updateData = {
+        purchaseStatus: newStatus
+      }
+      
+      await purchasesApi.updateStatus(id, updateData)
       setSuccess('Purchase status updated successfully!')
       loadPurchases()
     } catch (err) {
@@ -201,6 +199,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       setError('Failed to update purchase status: ' + err.message)
     }
   }
+
 
   const resetForm = () => {
     setFormData({
@@ -353,10 +352,69 @@ const PurchasesPage = ({ isDarkMode }) => {
     setShowEditModal(true)
   }
 
-  const filteredPurchases = purchases.filter(purchase => {
-    if (filter === 'all') return true
-    return purchase.purchaseStatus === filter
-  })
+  const startEditingItem = (index) => {
+    const item = formData.purchaseItems[index]
+    setEditingItemIndex(index)
+    setEditingItem({
+      quantity: item.quantity?.toString() || '',
+      unitPrice: item.unitPrice?.toString() || ''
+    })
+  }
+
+  const cancelEditingItem = () => {
+    setEditingItemIndex(null)
+    setEditingItem({ quantity: '', unitPrice: '' })
+  }
+
+  const saveEditingItem = async () => {
+    if (!editingItem.quantity || !editingItem.unitPrice) {
+      setError('Please fill in all required fields')
+      return
+    }
+
+    try {
+      setError(null)
+      
+      // Prepare the PurchaseItemUpdateDTO data
+      const itemUpdateData = {
+        quantity: parseInt(editingItem.quantity),
+        unitPrice: parseFloat(editingItem.unitPrice)
+      }
+
+      // Get the current item to find its ID
+      const currentItem = formData.purchaseItems[editingItemIndex]
+      
+      // Use the correct item ID field (could be purchaseItemId, id, or itemId)
+      const itemId = currentItem.purchaseItemId || currentItem.id || currentItem.itemId || editingItemIndex
+      
+      // Call the API to update the item
+      await purchasesApi.updateItem(selectedPurchase.purchaseId, itemId, itemUpdateData)
+
+      // Update local state
+      const updatedItems = [...formData.purchaseItems]
+      updatedItems[editingItemIndex] = {
+        ...updatedItems[editingItemIndex],
+        quantity: itemUpdateData.quantity,
+        unitPrice: itemUpdateData.unitPrice
+      }
+
+      setFormData({
+        ...formData,
+        purchaseItems: updatedItems
+      })
+
+      setEditingItemIndex(null)
+      setEditingItem({ quantity: '', unitPrice: '' })
+      setSuccess('Item updated successfully!')
+      
+      // Reload purchases to get updated data
+      loadPurchases()
+    } catch (err) {
+      console.error('Error updating item:', err)
+      setError('Failed to update item: ' + err.message)
+    }
+  }
+
 
   if (loading) {
     return (
@@ -428,24 +486,24 @@ const PurchasesPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {purchases.filter(p => p.purchaseStatus === 'PENDING').length}
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Received</p>
+              <p className="text-2xl font-bold text-green-600">
+                {purchases.filter(p => p.purchaseStatus === 'RECEIVED').length}
               </p>
             </div>
-            <div className="text-2xl">⏳</div>
+            <div className="text-2xl">✅</div>
           </div>
         </div>
 
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Delivered</p>
-              <p className="text-2xl font-bold text-green-600">
-                {purchases.filter(p => p.purchaseStatus === 'DELIVERED').length}
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Ordered</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {purchases.filter(p => p.purchaseStatus === 'ORDERED').length}
               </p>
             </div>
-            <div className="text-2xl">✅</div>
+            <div className="text-2xl">📦</div>
           </div>
         </div>
 
@@ -462,61 +520,81 @@ const PurchasesPage = ({ isDarkMode }) => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 mb-6">
-        {[
-          { key: 'all', label: 'All Purchases' },
-          { key: 'PENDING', label: 'Pending' },
-          { key: 'ORDERED', label: 'Ordered' },
-          { key: 'DELIVERED', label: 'Delivered' },
-          { key: 'CANCELLED', label: 'Cancelled' }
-        ].map((filterOption) => (
-          <button
-            key={filterOption.key}
-            onClick={() => setFilter(filterOption.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === filterOption.key
-                ? 'bg-pharma-teal text-white'
-                : isDarkMode
-                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-            } border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}
-          >
-            {filterOption.label}
-          </button>
-        ))}
-      </div>
 
       {/* Purchases List */}
       <div className="space-y-4">
-        {filteredPurchases.map((purchase) => (
+        {purchases.map((purchase) => (
           <div key={purchase.purchaseId} className={`rounded-lg border p-6 ${
             isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
           }`}>
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Purchase #{purchase.purchaseId}</h3>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Supplier: {purchase.supplier?.name || 'Unknown'} [{purchase.supplier?.contactPerson || 'No Contact'}]
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-semibold">Purchase #{purchase.purchaseId}</h3>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    purchase.purchaseStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    purchase.purchaseStatus === 'ORDERED' ? 'bg-blue-100 text-blue-800' :
+                    purchase.purchaseStatus === 'RECEIVED' ? 'bg-green-100 text-green-800' :
+                    purchase.purchaseStatus === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {purchase.purchaseStatus}
+                  </span>
+                </div>
+                
+                <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <span className="font-medium">Supplier:</span> {purchase.supplier?.name || 'Unknown'}
+                </p>
+                
+                <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <span className="font-medium">Date:</span> {new Date(purchase.purchaseDate).toLocaleDateString()}
+                </p>
+                
+                <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <span className="font-medium">Created By:</span> User #{purchase.createdBy}
+                </p>
+                
+                <p className={`text-sm font-bold ${isDarkMode ? 'text-pharma-teal' : 'text-pharma-teal'}`}>
+                  <span className="font-medium">Total:</span> ${purchase.totalAmount?.toFixed(2) || '0.00'}
                 </p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(purchase.purchaseStatus)}`}>
-                {purchase.purchaseStatus?.charAt(0).toUpperCase() + purchase.purchaseStatus?.slice(1).toLowerCase()}
-              </span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Purchase Date</p>
-                <p className="font-medium">{new Date(purchase.purchaseDate).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created By</p>
-                <p className="font-medium">User #{purchase.createdBy}</p>
-              </div>
-              <div>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</p>
-                <p className="font-bold text-pharma-teal text-lg">${purchase.totalAmount?.toFixed(2) || '0.00'}</p>
+              {/* Actions on the right side */}
+              <div className="flex flex-col space-y-2 ml-4">
+                <select
+                  value={purchase.purchaseStatus}
+                  onChange={(e) => handleUpdateStatus(purchase.purchaseId, e.target.value)}
+                  className={`py-2 px-3 rounded text-sm border transition-colors ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-700'
+                  }`}
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="ORDERED">Ordered</option>
+                  <option value="RECEIVED">Received</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+                <button
+                  onClick={() => openEditModal(purchase)}
+                  className={`py-2 px-3 rounded text-sm font-medium transition-colors ${
+                    isDarkMode
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeletePurchase(purchase.purchaseId)}
+                  className={`py-2 px-3 rounded text-sm font-medium transition-colors ${
+                    isDarkMode
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  Delete
+                </button>
               </div>
             </div>
 
@@ -546,48 +624,6 @@ const PurchasesPage = ({ isDarkMode }) => {
                 </div>
               </div>
             )}
-
-            {/* Actions */}
-            <div className="flex justify-between items-center mt-4">
-              <div className="flex space-x-2">
-                <select
-                  value={purchase.purchaseStatus}
-                  onChange={(e) => handleUpdateStatus(purchase.purchaseId, e.target.value)}
-                  className={`px-3 py-1 rounded text-sm border ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <option value="PENDING">Pending</option>
-                  <option value="ORDERED">Ordered</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-              </div>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => openEditModal(purchase)}
-                  className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                    isDarkMode
-                      ? 'bg-pharma-teal text-white hover:bg-pharma-medium'
-                      : 'bg-pharma-teal text-white hover:bg-pharma-medium'
-                  }`}
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={() => handleDeletePurchase(purchase.purchaseId)}
-                  className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                    isDarkMode
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-red-600 text-white hover:bg-red-700'
-                  }`}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
           </div>
         ))}
       </div>
@@ -605,30 +641,30 @@ const PurchasesPage = ({ isDarkMode }) => {
               <div className={`rounded-lg p-4 mb-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                 <h3 className="text-lg font-semibold mb-4">Purchase Header</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Supplier *
-                    </label>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Supplier *
+                  </label>
                     <div className="flex gap-2">
-                      <select
-                        value={formData.supplierId}
-                        onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
-                        required
+                  <select
+                    value={formData.supplierId}
+                    onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                    required
                         className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                          isDarkMode
+                      isDarkMode
                             ? 'bg-gray-600 border-gray-500 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                        }`}
-                      >
-                        <option value="">Select a supplier</option>
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Select a supplier</option>
                         {suppliers.map((supplier, index) => (
                           <option key={supplier.supplierId || supplier.id || `supplier-${index}`} value={supplier.supplierId || supplier.id}>
-                            {supplier.name} [{supplier.contactPerson || 'No Contact'}]
-                          </option>
-                        ))}
-                      </select>
+                        {supplier.name} [{supplier.contactPerson || 'No Contact'}]
+                      </option>
+                    ))}
+                  </select>
                       <button
                         type="button"
                         onClick={handleCreateSupplier}
@@ -664,31 +700,31 @@ const PurchasesPage = ({ isDarkMode }) => {
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     />
-                  </div>
+                </div>
 
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
-                      Total Amount *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.totalAmount}
-                      onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
-                      required
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                        isDarkMode
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Total Amount *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.totalAmount}
+                    onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
                           ? 'bg-gray-600 border-gray-500 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                      placeholder="0.00"
-                    />
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="0.00"
+                  />
                   </div>
                 </div>
-              </div>
+                </div>
 
               {/* Purchase Items Section */}
               <div className={`rounded-lg p-4 mb-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
@@ -712,9 +748,9 @@ const PurchasesPage = ({ isDarkMode }) => {
                     {/* First Row: Product and Batch Number */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className={`block text-sm font-medium mb-2 ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                           Product *
                         </label>
                         <div className="flex gap-2">
@@ -844,18 +880,18 @@ const PurchasesPage = ({ isDarkMode }) => {
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>
                           Manufacturing Date *
-                        </label>
-                        <input
-                          type="date"
+                  </label>
+                  <input
+                    type="date"
                           value={newPurchaseItem.manufacturingDate}
                           onChange={(e) => setNewPurchaseItem({...newPurchaseItem, manufacturingDate: e.target.value})}
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                            isDarkMode
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
                               ? 'bg-gray-600 border-gray-500 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                          }`}
-                        />
-                      </div>
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
 
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${
@@ -1056,6 +1092,115 @@ const PurchasesPage = ({ isDarkMode }) => {
                   />
                 </div>
               </div>
+
+              {/* Purchase Items */}
+              {formData.purchaseItems && formData.purchaseItems.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Purchase Items</h3>
+                  <div className="space-y-4">
+                    {formData.purchaseItems.map((item, index) => (
+                      <div key={index} className={`p-4 rounded-lg border ${
+                        isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                      }`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium">{item.productName || 'Unknown Product'}</h4>
+                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              Batch: {item.batchNumber || 'N/A'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => startEditingItem(index)}
+                            className="px-2 py-1 bg-pharma-teal text-white text-xs rounded hover:bg-pharma-medium"
+                          >
+                            Edit
+                          </button>
+                        </div>
+
+                        {editingItemIndex === index ? (
+                          <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-600 rounded">
+                            <div className="flex gap-4 items-center">
+                              <div className="flex-1">
+                                <label className={`block text-sm font-medium mb-1 ${
+                                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  Quantity *
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={editingItem.quantity}
+                                  onChange={(e) => setEditingItem({...editingItem, quantity: e.target.value})}
+                                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                                    isDarkMode
+                                      ? 'bg-gray-700 border-gray-500 text-white'
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                  placeholder="Enter quantity"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className={`block text-sm font-medium mb-1 ${
+                                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                                }`}>
+                                  Unit Price *
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={editingItem.unitPrice}
+                                  onChange={(e) => setEditingItem({...editingItem, unitPrice: e.target.value})}
+                                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                                    isDarkMode
+                                      ? 'bg-gray-700 border-gray-500 text-white'
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={saveEditingItem}
+                                  className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 font-medium"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelEditingItem}
+                                  className="px-4 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 font-medium"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Quantity: </span>
+                              <span className="font-medium">{item.quantity || 0}</span>
+                            </div>
+                            <div>
+                              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unit Price: </span>
+                              <span className="font-medium">${item.unitPrice?.toFixed(2) || '0.00'}</span>
+                            </div>
+                            <div className="md:col-span-2">
+                              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total: </span>
+                              <span className="font-bold text-pharma-teal">
+                                ${((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="flex space-x-3 mt-6">
                 <button
@@ -1063,6 +1208,8 @@ const PurchasesPage = ({ isDarkMode }) => {
                   onClick={() => {
                     setShowEditModal(false)
                     setSelectedPurchase(null)
+                    setEditingItemIndex(null)
+                    setEditingItem({ quantity: '', unitPrice: '' })
                     resetForm()
                   }}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
