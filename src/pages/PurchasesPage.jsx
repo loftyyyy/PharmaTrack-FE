@@ -52,6 +52,18 @@ const PurchasesPage = ({ isDarkMode }) => {
     loadProducts()
   }, [])
 
+  // Auto-clear error and success messages after 5 seconds
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError(null)
+        setSuccess(null)
+      }, 5000) // 5 seconds
+
+      return () => clearTimeout(timer)
+    }
+  }, [error, success])
+
   const loadPurchases = async () => {
     try {
       setLoading(true)
@@ -190,6 +202,7 @@ const PurchasesPage = ({ isDarkMode }) => {
     e.preventDefault()
     try {
       setError(null)
+      setSuccess(null) // Clear any previous success messages
       
       const purchaseId = selectedPurchase.purchaseId
       const newStatus = formData.purchaseStatus
@@ -210,6 +223,7 @@ const PurchasesPage = ({ isDarkMode }) => {
         setSuccess('Purchase status updated successfully!')
       }
       
+      // Close modal and reset on success
       setShowEditModal(false)
       setSelectedPurchase(null)
       resetForm()
@@ -217,6 +231,10 @@ const PurchasesPage = ({ isDarkMode }) => {
     } catch (err) {
       console.error('Error updating purchase status:', err)
       setError('Failed to update purchase status: ' + err.message)
+      // Close modal on error and show error on main page
+      setShowEditModal(false)
+      setSelectedPurchase(null)
+      resetForm()
     }
   }
 
