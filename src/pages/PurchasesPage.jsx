@@ -17,6 +17,15 @@ const PurchasesPage = ({ isDarkMode }) => {
   const [editingItem, setEditingItem] = useState({ quantity: '', unitPrice: '' })
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [amountMin, setAmountMin] = useState('')
+  const [amountMax, setAmountMax] = useState('')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   // Form state for creating/editing purchases
   const [formData, setFormData] = useState({
@@ -74,6 +83,43 @@ const PurchasesPage = ({ isDarkMode }) => {
     } catch (err) {
       console.error('Error loading products:', err)
     }
+  }
+
+  // Filter and search logic
+  const getFilteredPurchases = () => {
+    return purchases.filter(purchase => {
+      // Text search (purchase ID, supplier name, or product names)
+      const matchesSearch = !searchTerm || 
+        purchase.purchaseId.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (purchase.supplier?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (purchase.purchaseItems || []).some(item => 
+          (item.productName || '').toLowerCase().includes(searchTerm.toLowerCase())
+        )
+
+      // Status filter
+      const matchesStatus = statusFilter === 'ALL' || purchase.purchaseStatus === statusFilter
+
+      // Date range filter
+      const purchaseDate = new Date(purchase.purchaseDate)
+      const matchesDateFrom = !dateFrom || purchaseDate >= new Date(dateFrom)
+      const matchesDateTo = !dateTo || purchaseDate <= new Date(dateTo)
+
+      // Amount range filter
+      const totalAmount = purchase.totalAmount || 0
+      const matchesAmountMin = !amountMin || totalAmount >= parseFloat(amountMin)
+      const matchesAmountMax = !amountMax || totalAmount <= parseFloat(amountMax)
+
+      return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo && matchesAmountMin && matchesAmountMax
+    })
+  }
+
+  const clearFilters = () => {
+    setSearchTerm('')
+    setStatusFilter('ALL')
+    setDateFrom('')
+    setDateTo('')
+    setAmountMin('')
+    setAmountMax('')
   }
 
 
@@ -471,6 +517,182 @@ const PurchasesPage = ({ isDarkMode }) => {
         </button>
       </div>
 
+      {/* Search and Filters */}
+      <div className={`rounded-lg p-6 mb-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className="flex flex-col lg:flex-row gap-4 mb-4">
+          {/* Search Input */}
+          <div className="flex-1">
+            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Search Purchases
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by purchase ID, supplier, or product name..."
+                className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                }`}
+              />
+              <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="lg:w-48">
+            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            >
+              <option value="ALL">All Status</option>
+              <option value="PENDING">Pending</option>
+              <option value="ORDERED">Ordered</option>
+              <option value="RECEIVED">Received</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+
+          {/* Advanced Filters Toggle */}
+          <div className="flex items-end">
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showAdvancedFilters
+                  ? isDarkMode
+                    ? 'bg-pharma-teal text-white'
+                    : 'bg-pharma-teal text-white'
+                  : isDarkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
+              </svg>
+              Advanced Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Advanced Filters */}
+        {showAdvancedFilters && (
+          <div className="border-t pt-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Date From */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Date From
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Date To
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              {/* Amount Min */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Min Amount
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amountMin}
+                  onChange={(e) => setAmountMin(e.target.value)}
+                  placeholder="0.00"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
+                />
+              </div>
+
+              {/* Amount Max */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Max Amount
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amountMax}
+                  onChange={(e) => setAmountMax(e.target.value)}
+                  placeholder="0.00"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={clearFilters}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Search Results Count */}
+        <div className="mt-4 pt-4 border-t">
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Showing {getFilteredPurchases().length} of {purchases.length} purchases
+          </p>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -522,8 +744,33 @@ const PurchasesPage = ({ isDarkMode }) => {
 
 
       {/* Purchases List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {purchases.map((purchase) => (
+      {getFilteredPurchases().length === 0 ? (
+        <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <svg className="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <h3 className="text-lg font-medium mb-2">No purchases found</h3>
+          <p className="mb-4">
+            {searchTerm || statusFilter !== 'ALL' || dateFrom || dateTo || amountMin || amountMax
+              ? 'Try adjusting your search criteria or clear the filters.'
+              : 'No purchases have been created yet.'}
+          </p>
+          {(searchTerm || statusFilter !== 'ALL' || dateFrom || dateTo || amountMin || amountMax) && (
+            <button
+              onClick={clearFilters}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isDarkMode
+                  ? 'bg-pharma-teal text-white hover:bg-pharma-medium'
+                  : 'bg-pharma-teal text-white hover:bg-pharma-medium'
+              }`}
+            >
+              Clear All Filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {getFilteredPurchases().map((purchase) => (
           <div key={purchase.purchaseId} className={`rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${
             isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
           }`}>
@@ -646,7 +893,8 @@ const PurchasesPage = ({ isDarkMode }) => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Add Purchase Modal */}
       {showAddModal && (
