@@ -13,8 +13,6 @@ const PurchasesPage = ({ isDarkMode }) => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedPurchase, setSelectedPurchase] = useState(null)
-  const [editingItemIndex, setEditingItemIndex] = useState(null)
-  const [editingItem, setEditingItem] = useState({ quantity: '', unitPrice: '' })
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   
@@ -163,26 +161,17 @@ const PurchasesPage = ({ isDarkMode }) => {
         supplierId: supplierId,
         totalAmount: parseFloat(formData.totalAmount),
         purchaseDate: formData.purchaseDate,
-        purchaseItems: formData.purchaseItems.map(item => {
-          // Validate that productBatch has all required fields
-          if (!item.productBatch.productId || !item.productBatch.batchNumber) {
-            throw new Error('Invalid product batch data: missing productId or batchNumber')
-          }
-          
-          return {
-            productBatch: {
-              productId: parseInt(item.productBatch.productId),
-              batchNumber: item.productBatch.batchNumber,
-              quantity: parseInt(item.productBatch.quantity),
-              purchasePricePerUnit: parseFloat(item.productBatch.purchasePricePerUnit),
-              expiryDate: item.productBatch.expiryDate,
-              manufacturingDate: item.productBatch.manufacturingDate,
-              location: item.productBatch.location || null
-            },
-            quantity: parseInt(item.quantity),
-            unitPrice: parseFloat(item.unitPrice)
-          }
-        })
+        purchaseItems: formData.purchaseItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          batchNumber: item.batchNumber,
+          batchQuantity: item.batchQuantity,
+          purchasePricePerUnit: item.purchasePricePerUnit,
+          expiryDate: item.expiryDate,
+          manufacturingDate: item.manufacturingDate,
+          location: item.location
+        }))
       }
 
       await purchasesApi.create(purchaseData)
@@ -201,15 +190,33 @@ const PurchasesPage = ({ isDarkMode }) => {
     e.preventDefault()
     try {
       setError(null)
-      await purchasesApi.update(selectedPurchase.purchaseId, formData)
-      setSuccess('Purchase updated successfully!')
+      
+      const purchaseId = selectedPurchase.purchaseId
+      const newStatus = formData.purchaseStatus
+      
+      // Use different endpoints based on status
+      if (newStatus === 'RECEIVED') {
+        await purchasesApi.confirm(purchaseId)
+        setSuccess('Purchase confirmed successfully!')
+      } else if (newStatus === 'CANCELLED') {
+        await purchasesApi.cancel(purchaseId)
+        setSuccess('Purchase cancelled successfully!')
+      } else {
+        // For PENDING and ORDERED, use the general updateStatus endpoint
+        const updateData = {
+          purchaseStatus: newStatus
+        }
+        await purchasesApi.updateStatus(purchaseId, updateData)
+        setSuccess('Purchase status updated successfully!')
+      }
+      
       setShowEditModal(false)
       setSelectedPurchase(null)
       resetForm()
       loadPurchases()
     } catch (err) {
-      console.error('Error updating purchase:', err)
-      setError('Failed to update purchase: ' + err.message)
+      console.error('Error updating purchase status:', err)
+      setError('Failed to update purchase status: ' + err.message)
     }
   }
 
@@ -228,23 +235,6 @@ const PurchasesPage = ({ isDarkMode }) => {
     }
   }
 
-  const handleUpdateStatus = async (id, newStatus) => {
-    try {
-      setError(null)
-      
-      // Prepare the PurchaseUpdateDTO data
-      const updateData = {
-        purchaseStatus: newStatus
-      }
-      
-      await purchasesApi.updateStatus(id, updateData)
-      setSuccess('Purchase status updated successfully!')
-      loadPurchases()
-    } catch (err) {
-      console.error('Error updating purchase status:', err)
-      setError('Failed to update purchase status: ' + err.message)
-    }
-  }
 
 
   const resetForm = () => {
@@ -252,7 +242,8 @@ const PurchasesPage = ({ isDarkMode }) => {
       supplierId: '',
       totalAmount: '',
       purchaseDate: new Date().toISOString().split('T')[0],
-      purchaseItems: []
+      purchaseItems: [],
+      purchaseStatus: 'PENDING'
     })
     setNewPurchaseItem({
       productId: '',
@@ -279,6 +270,13 @@ const PurchasesPage = ({ isDarkMode }) => {
     const quantity = parseInt(newPurchaseItem.quantity)
     if (quantity < 1) {
       setError('Quantity must be at least 1')
+      return
+    }
+
+    // Validate batch quantity (must be at least 1)
+    const batchQuantity = parseInt(newPurchaseItem.quantity) // Using same value for now
+    if (batchQuantity < 1) {
+      setError('Batch quantity must be at least 1')
       return
     }
 
@@ -318,31 +316,24 @@ const PurchasesPage = ({ isDarkMode }) => {
 
     const selectedProduct = products.find(p => p.productId === parseInt(newPurchaseItem.productId))
 
-    // Create ProductBatchCreateDTO
-    const productBatch = {
+    // Create purchase item matching new PurchaseItemCreateDTO structure
+    const purchaseItem = {
       productId: parseInt(newPurchaseItem.productId),
-      batchNumber: newPurchaseItem.batchNumber,
       quantity: quantity,
+      unitPrice: unitPrice,
+      batchNumber: newPurchaseItem.batchNumber,
+      batchQuantity: batchQuantity,
       purchasePricePerUnit: purchasePricePerUnit,
       expiryDate: newPurchaseItem.expiryDate,
       manufacturingDate: newPurchaseItem.manufacturingDate,
       location: newPurchaseItem.location || null
-    }
-
-    // Create purchase item matching PurchaseItemCreateDTO structure
-    const purchaseItem = {
-      productBatch: productBatch,
-      quantity: quantity,
-      unitPrice: unitPrice
       // Note: purchaseId will be set when the purchase is created
     }
 
     // For display purposes, we'll store additional info separately
     const displayItem = {
       ...purchaseItem,
-      productId: parseInt(newPurchaseItem.productId),
-      productName: selectedProduct?.name || 'Unknown Product',
-      batchNumber: newPurchaseItem.batchNumber
+      productName: selectedProduct?.name || 'Unknown Product'
     }
 
     setFormData({
@@ -390,76 +381,15 @@ const PurchasesPage = ({ isDarkMode }) => {
   const openEditModal = (purchase) => {
     setSelectedPurchase(purchase)
     setFormData({
-      supplierId: purchase.supplier?.supplierId || '',
-      totalAmount: purchase.totalAmount?.toString() || '',
-      purchaseDate: purchase.purchaseDate || new Date().toISOString().split('T')[0],
-      purchaseItems: purchase.purchaseItems || []
+      supplierId: '',
+      totalAmount: '',
+      purchaseDate: '',
+      purchaseItems: [],
+      purchaseStatus: purchase.purchaseStatus || 'PENDING'
     })
     setShowEditModal(true)
   }
 
-  const startEditingItem = (index) => {
-    const item = formData.purchaseItems[index]
-    setEditingItemIndex(index)
-    setEditingItem({
-      quantity: item.quantity?.toString() || '',
-      unitPrice: item.unitPrice?.toString() || ''
-    })
-  }
-
-  const cancelEditingItem = () => {
-    setEditingItemIndex(null)
-    setEditingItem({ quantity: '', unitPrice: '' })
-  }
-
-  const saveEditingItem = async () => {
-    if (!editingItem.quantity || !editingItem.unitPrice) {
-      setError('Please fill in all required fields')
-      return
-    }
-
-    try {
-      setError(null)
-      
-      // Prepare the PurchaseItemUpdateDTO data
-      const itemUpdateData = {
-        quantity: parseInt(editingItem.quantity),
-        unitPrice: parseFloat(editingItem.unitPrice)
-      }
-
-      // Get the current item to find its ID
-      const currentItem = formData.purchaseItems[editingItemIndex]
-      
-      // Use the correct item ID field (could be purchaseItemId, id, or itemId)
-      const itemId = currentItem.purchaseItemId || currentItem.id || currentItem.itemId || editingItemIndex
-      
-      // Call the API to update the item
-      await purchasesApi.updateItem(selectedPurchase.purchaseId, itemId, itemUpdateData)
-
-      // Update local state
-      const updatedItems = [...formData.purchaseItems]
-      updatedItems[editingItemIndex] = {
-        ...updatedItems[editingItemIndex],
-        quantity: itemUpdateData.quantity,
-        unitPrice: itemUpdateData.unitPrice
-      }
-
-      setFormData({
-        ...formData,
-        purchaseItems: updatedItems
-      })
-
-      setEditingItemIndex(null)
-      setEditingItem({ quantity: '', unitPrice: '' })
-      setSuccess('Item updated successfully!')
-      
-      // Reload purchases to get updated data
-      loadPurchases()
-    } catch (err) {
-      console.error('Error updating item:', err)
-      setError('Failed to update item: ' + err.message)
-    }
-  }
 
 
   if (loading) {
@@ -845,6 +775,9 @@ const PurchasesPage = ({ isDarkMode }) => {
                           <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             Qty: {item.quantity || 0} × ${item.unitPrice?.toFixed(2) || '0.00'}
                           </p>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Batch: {item.batchNumber || 'N/A'}
+                          </p>
                         </div>
                         <div className="text-right ml-2">
                           <div className="font-semibold text-sm">
@@ -1229,9 +1162,9 @@ const PurchasesPage = ({ isDarkMode }) => {
                               <span className="font-medium text-lg">{item.productName}</span>
                               <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
                                 <div>Batch: {item.batchNumber}</div>
-                                <div>Qty: {item.quantity} | Unit Price: ${item.unitPrice.toFixed(2)} | Purchase Price: ${item.productBatch.purchasePricePerUnit.toFixed(2)}</div>
-                                <div>Manufacturing: {new Date(item.productBatch.manufacturingDate).toLocaleDateString()} | Expiry: {new Date(item.productBatch.expiryDate).toLocaleDateString()}</div>
-                                {item.productBatch.location && <div>Location: {item.productBatch.location}</div>}
+                                <div>Qty: {item.quantity} | Unit Price: ${item.unitPrice.toFixed(2)} | Purchase Price: ${item.purchasePricePerUnit.toFixed(2)}</div>
+                                <div>Manufacturing: {new Date(item.manufacturingDate).toLocaleDateString()} | Expiry: {new Date(item.expiryDate).toLocaleDateString()}</div>
+                                {item.location && <div>Location: {item.location}</div>}
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -1289,86 +1222,20 @@ const PurchasesPage = ({ isDarkMode }) => {
           <div className={`rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
-            <h2 className="text-xl font-bold mb-4">Edit Purchase #{selectedPurchase.purchaseId}</h2>
+            <h2 className="text-xl font-bold mb-4">Update Purchase Status #{selectedPurchase.purchaseId}</h2>
             
             <form onSubmit={handleUpdatePurchase}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="max-w-md mx-auto">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Supplier *
+                    Update Purchase Status *
                   </label>
                   <select
-                    value={formData.supplierId}
-                    onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                    value={formData.purchaseStatus || 'PENDING'}
+                    onChange={(e) => setFormData({...formData, purchaseStatus: e.target.value})}
                     required
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  >
-                    <option value="">Select a supplier</option>
-                    {suppliers.map((supplier, index) => (
-                      <option key={supplier.supplierId || supplier.id || `edit-supplier-${index}`} value={supplier.supplierId || supplier.id}>
-                        {supplier.name} [{supplier.contactPerson || 'No Contact'}]
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Total Amount *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.totalAmount}
-                    onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
-                    required
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Purchase Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.purchaseDate}
-                    onChange={(e) => setFormData({...formData, purchaseDate: e.target.value})}
-                    required
-                    max={new Date().toISOString().split('T')[0]}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>
-                    Status *
-                  </label>
-                  <select
-                    value={selectedPurchase?.purchaseStatus || 'PENDING'}
-                    onChange={(e) => handleUpdateStatus(selectedPurchase.purchaseId, e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
@@ -1382,115 +1249,6 @@ const PurchasesPage = ({ isDarkMode }) => {
                   </select>
                 </div>
               </div>
-
-              {/* Purchase Items */}
-              {formData.purchaseItems && formData.purchaseItems.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Purchase Items</h3>
-                  <div className="space-y-4">
-                    {formData.purchaseItems.map((item, index) => (
-                      <div key={index} className={`p-4 rounded-lg border ${
-                        isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
-                      }`}>
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{item.productName || 'Unknown Product'}</h4>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Batch: {item.batchNumber || 'N/A'}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => startEditingItem(index)}
-                            className="px-2 py-1 bg-pharma-teal text-white text-xs rounded hover:bg-pharma-medium"
-                          >
-                            Edit
-                          </button>
-                        </div>
-
-                        {editingItemIndex === index ? (
-                          <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-600 rounded">
-                            <div className="flex gap-4 items-center">
-                              <div className="flex-1">
-                                <label className={`block text-sm font-medium mb-1 ${
-                                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  Quantity *
-                                </label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={editingItem.quantity}
-                                  onChange={(e) => setEditingItem({...editingItem, quantity: e.target.value})}
-                                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                                    isDarkMode
-                                      ? 'bg-gray-700 border-gray-500 text-white'
-                                      : 'bg-white border-gray-300 text-gray-900'
-                                  }`}
-                                  placeholder="Enter quantity"
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className={`block text-sm font-medium mb-1 ${
-                                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                                }`}>
-                                  Unit Price *
-                                </label>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={editingItem.unitPrice}
-                                  onChange={(e) => setEditingItem({...editingItem, unitPrice: e.target.value})}
-                                  className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                                    isDarkMode
-                                      ? 'bg-gray-700 border-gray-500 text-white'
-                                      : 'bg-white border-gray-300 text-gray-900'
-                                  }`}
-                                  placeholder="0.00"
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={saveEditingItem}
-                                  className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 font-medium"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={cancelEditingItem}
-                                  className="px-4 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 font-medium"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Quantity: </span>
-                              <span className="font-medium">{item.quantity || 0}</span>
-                            </div>
-                            <div>
-                              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unit Price: </span>
-                              <span className="font-medium">${item.unitPrice?.toFixed(2) || '0.00'}</span>
-                            </div>
-                            <div className="md:col-span-2">
-                              <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total: </span>
-                              <span className="font-bold text-pharma-teal">
-                                ${((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               
               <div className="flex space-x-3 mt-6">
                 <button
@@ -1498,8 +1256,6 @@ const PurchasesPage = ({ isDarkMode }) => {
                   onClick={() => {
                     setShowEditModal(false)
                     setSelectedPurchase(null)
-                    setEditingItemIndex(null)
-                    setEditingItem({ quantity: '', unitPrice: '' })
                     resetForm()
                   }}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
@@ -1514,7 +1270,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                   type="submit"
                   className="flex-1 py-2 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
                 >
-                  Update Purchase
+                  Update Status
                 </button>
               </div>
             </form>

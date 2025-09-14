@@ -47,7 +47,9 @@ const purchasesApi = {
   update: (id, purchaseData) => request(`/api/v1/purchases/${id}`, { method: 'PUT', body: JSON.stringify(purchaseData) }),
   updateItem: (purchaseId, itemId, itemData) => request(`/api/v1/purchases/${purchaseId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(itemData) }),
   delete: (id) => request(`/api/v1/purchases/${id}`, { method: 'DELETE' }),
-  updateStatus: (id, updateData) => request(`/api/v1/purchases/${id}/status`, { method: 'PATCH', body: JSON.stringify(updateData) }),
+  updateStatus: (id, updateData) => request(`/api/v1/purchases/${id}`, { method: 'PUT', body: JSON.stringify(updateData) }),
+  confirm: (id) => request(`/api/v1/purchases/${id}/confirm`, { method: 'PUT' }),
+  cancel: (id) => request(`/api/v1/purchases/${id}/cancel`, { method: 'PUT' }),
 }
 
 export default purchasesApi
