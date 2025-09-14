@@ -522,108 +522,128 @@ const PurchasesPage = ({ isDarkMode }) => {
 
 
       {/* Purchases List */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {purchases.map((purchase) => (
-          <div key={purchase.purchaseId} className={`rounded-lg border p-6 ${
+          <div key={purchase.purchaseId} className={`rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${
             isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
           }`}>
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold">Purchase #{purchase.purchaseId}</h3>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    purchase.purchaseStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                    purchase.purchaseStatus === 'ORDERED' ? 'bg-blue-100 text-blue-800' :
-                    purchase.purchaseStatus === 'RECEIVED' ? 'bg-green-100 text-green-800' :
-                    purchase.purchaseStatus === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {purchase.purchaseStatus}
+            {/* Card Header */}
+            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-pharma-teal">#{purchase.purchaseId}</h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {new Date(purchase.purchaseDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  purchase.purchaseStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                  purchase.purchaseStatus === 'ORDERED' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                  purchase.purchaseStatus === 'RECEIVED' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  purchase.purchaseStatus === 'CANCELLED' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                  'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                }`}>
+                  {purchase.purchaseStatus}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-pharma-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                  </svg>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {purchase.supplier?.name || 'Unknown Supplier'}
                   </span>
                 </div>
                 
-                <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <span className="font-medium">Supplier:</span> {purchase.supplier?.name || 'Unknown'}
-                </p>
-                
-                <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <span className="font-medium">Date:</span> {new Date(purchase.purchaseDate).toLocaleDateString()}
-                </p>
-                
-                <p className={`text-sm mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <span className="font-medium">Created By:</span> User #{purchase.createdBy}
-                </p>
-                
-                <p className={`text-sm font-bold ${isDarkMode ? 'text-pharma-teal' : 'text-pharma-teal'}`}>
-                  <span className="font-medium">Total:</span> ${purchase.totalAmount?.toFixed(2) || '0.00'}
-                </p>
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 mr-2 text-pharma-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    User #{purchase.createdBy}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Body */}
+            <div className="p-6">
+              {/* Total Amount */}
+              <div className="text-center mb-6">
+                <div className={`text-3xl font-bold ${isDarkMode ? 'text-pharma-teal' : 'text-pharma-teal'}`}>
+                  ${purchase.totalAmount?.toFixed(2) || '0.00'}
+                </div>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</p>
               </div>
 
-              {/* Actions on the right side */}
-              <div className="flex flex-col space-y-2 ml-4">
-                <select
-                  value={purchase.purchaseStatus}
-                  onChange={(e) => handleUpdateStatus(purchase.purchaseId, e.target.value)}
-                  className={`py-2 px-3 rounded text-sm border transition-colors ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <option value="PENDING">Pending</option>
-                  <option value="ORDERED">Ordered</option>
-                  <option value="RECEIVED">Received</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
+              {/* Items Preview */}
+              {purchase.purchaseItems && purchase.purchaseItems.length > 0 && (
+                <div className="mb-6">
+                  <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Items ({purchase.purchaseItems.length})
+                  </h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {purchase.purchaseItems.slice(0, 3).map((item, index) => (
+                      <div key={index} className={`flex justify-between items-center py-2 px-3 rounded-lg ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{item.productName || 'Unknown Product'}</p>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Qty: {item.quantity || 0} × ${item.unitPrice?.toFixed(2) || '0.00'}
+                          </p>
+                        </div>
+                        <div className="text-right ml-2">
+                          <div className="font-semibold text-sm">
+                            ${((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {purchase.purchaseItems.length > 3 && (
+                      <p className={`text-xs text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        +{purchase.purchaseItems.length - 3} more items
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex space-x-2">
                 <button
                   onClick={() => openEditModal(purchase)}
-                  className={`py-2 px-3 rounded text-sm font-medium transition-colors ${
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isDarkMode
-                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-pharma-teal text-white hover:bg-pharma-medium hover:shadow-lg'
+                      : 'bg-pharma-teal text-white hover:bg-pharma-medium hover:shadow-lg'
                   }`}
                 >
+                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
                   Edit
                 </button>
                 <button
                   onClick={() => handleDeletePurchase(purchase.purchaseId)}
-                  className={`py-2 px-3 rounded text-sm font-medium transition-colors ${
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isDarkMode
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-red-600 text-white hover:bg-red-700'
+                      ? 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg'
+                      : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg'
                   }`}
                 >
-                  Delete
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
                 </button>
               </div>
             </div>
-
-            {/* Items */}
-            {purchase.purchaseItems && purchase.purchaseItems.length > 0 && (
-              <div className="mt-4">
-                <h4 className="font-medium mb-2">Items:</h4>
-                <div className="space-y-2">
-                  {purchase.purchaseItems.map((item, index) => (
-                    <div key={index} className={`flex justify-between items-center py-2 px-3 rounded ${
-                      isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                    }`}>
-                      <div>
-                        <span className="font-medium">{item.productName || 'Unknown Product'}</span>
-                        <span className={`ml-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Qty: {item.quantity || 0}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">${item.totalPrice?.toFixed(2) || '0.00'}</div>
-                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          ${item.unitPrice?.toFixed(2) || '0.00'}/unit
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -1072,7 +1092,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
@@ -1090,6 +1110,28 @@ const PurchasesPage = ({ isDarkMode }) => {
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
                   />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Status *
+                  </label>
+                  <select
+                    value={selectedPurchase?.purchaseStatus || 'PENDING'}
+                    onChange={(e) => handleUpdateStatus(selectedPurchase.purchaseId, e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="ORDERED">Ordered</option>
+                    <option value="RECEIVED">Received</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
                 </div>
               </div>
 
