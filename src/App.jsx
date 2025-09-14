@@ -25,6 +25,7 @@ import StockLevelsPage from './pages/StockLevelsPage'
 import StockAdjustmentsPage from './pages/StockAdjustmentsPage'
 import InventoryLogsPage from './pages/InventoryLogsPage'
 import PurchasesPage from './pages/PurchasesPage'
+import PurchaseItemsPage from './pages/PurchaseItemsPage'
 import CustomersPage from './pages/CustomersPage'
 import SalesPOSPage from './pages/SalesPOSPage'
 
@@ -244,15 +245,7 @@ const ProtectedApp = () => {
               } />
               <Route path="/purchase-items" element={
                 <ProtectedRoute requiredRole="ADMIN">
-                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-                    <h1 className="text-2xl font-bold">Purchase Items</h1>
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Detailed view and management of individual items within purchase orders.
-                    </p>
-                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
-                      <p className="text-center text-gray-500">This page is under development.</p>
-                    </div>
-                  </div>
+                  <PurchaseItemsPage isDarkMode={isDarkMode} />
                 </ProtectedRoute>
               } />
               
