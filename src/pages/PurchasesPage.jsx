@@ -1163,7 +1163,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className="font-bold text-lg">
-                                ₱{Number((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ₱{Number((item.quantity || 0) * (item.purchasePricePerUnit || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                               <button
                                 type="button"
