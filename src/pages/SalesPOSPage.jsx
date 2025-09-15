@@ -84,7 +84,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
     const total = getCartTotal()
     const customerInfo = selectedCustomer ? ` for ${selectedCustomer.name}` : ''
     
-    if (window.confirm(`Process sale of $${total.toFixed(2)}${customerInfo}?`)) {
+    if (window.confirm(`Process sale of ₱${total.toFixed(2)}${customerInfo}?`)) {
       // Here you would typically send the sale data to your backend
       alert('Sale processed successfully!')
       clearCart()
@@ -152,7 +152,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                     {product.stock} left
                   </span>
                 </div>
-                <p className="text-lg font-bold text-pharma-teal">${product.price.toFixed(2)}</p>
+                <p className="text-lg font-bold text-pharma-teal">₱{product.price.toFixed(2)}</p>
                 <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {product.barcode}
                 </p>
@@ -217,7 +217,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                 }`}>
                   <div className="flex-1">
                     <div className="font-medium text-sm">{item.name}</div>
-                    <div className="text-pharma-teal font-bold">${item.price.toFixed(2)}</div>
+                    <div className="text-pharma-teal font-bold">₱{item.price.toFixed(2)}</div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
@@ -261,7 +261,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
               }`}>
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total:</span>
-                  <span className="text-pharma-teal">${getCartTotal().toFixed(2)}</span>
+                  <span className="text-pharma-teal">₱{getCartTotal().toFixed(2)}</span>
                 </div>
               </div>
 

@@ -286,7 +286,7 @@ const PurchaseItemsPage = ({ isDarkMode }) => {
             <div>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Value</p>
               <p className="text-2xl font-bold text-green-600">
-                ${purchaseItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0).toFixed(2)}
+                ₱{purchaseItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0).toFixed(2)}
               </p>
             </div>
             <div className="text-2xl">💰</div>
@@ -380,12 +380,12 @@ const PurchaseItemsPage = ({ isDarkMode }) => {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unit Price:</span>
-                    <span className="font-semibold">${item.unitPrice?.toFixed(2) || '0.00'}</span>
+                    <span className="font-semibold">₱{item.unitPrice?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Value:</span>
                     <span className="font-bold text-green-600">
-                      ${((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}
+                      ₱{((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -403,7 +403,7 @@ const PurchaseItemsPage = ({ isDarkMode }) => {
                       </div>
                       <div className="flex justify-between">
                         <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Purchase Price:</span>
-                        <span>${item.productBatch.purchasePricePerUnit?.toFixed(2) || '0.00'}</span>
+                        <span>₱{item.productBatch.purchasePricePerUnit?.toFixed(2) || '0.00'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Manufacturing:</span>
