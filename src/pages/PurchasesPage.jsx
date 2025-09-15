@@ -145,8 +145,15 @@ const PurchasesPage = ({ isDarkMode }) => {
         return
       }
 
-      if (!formData.totalAmount || parseFloat(formData.totalAmount) < 0) {
-        setError('Please enter a valid total amount (must be at least 0.00)')
+      // Compute derived total from items using purchase price per unit
+      const derivedTotalAmount = (formData.purchaseItems || []).reduce((sum, item) => {
+        const quantity = Number(item.quantity || 0)
+        const pppu = Number(item.purchasePricePerUnit || 0)
+        return sum + (quantity * pppu)
+      }, 0)
+
+      if (derivedTotalAmount < 0) {
+        setError('Calculated total amount is invalid')
         return
       }
 
@@ -171,7 +178,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       // Format data according to PurchaseCreateDTO structure
       const purchaseData = {
         supplierId: supplierId,
-        totalAmount: parseFloat(formData.totalAmount),
+        totalAmount: Number(derivedTotalAmount.toFixed(2)),
         purchaseDate: formData.purchaseDate,
         purchaseItems: formData.purchaseItems.map(item => ({
           productId: item.productId,
@@ -779,7 +786,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{item.productName || 'Unknown Product'}</p>
                           <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Qty: {item.quantity || 0} × ₱{Number(item.unitPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Qty: {item.quantity || 0} × ₱{Number(item.purchasePricePerUnit || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             Batch: {item.batchNumber || 'N/A'}
@@ -787,7 +794,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                         </div>
                         <div className="text-right ml-2">
                           <div className="font-semibold text-sm">
-                            ₱{(((item.quantity || 0) * (item.unitPrice || 0)) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₱{Number(((item.quantity || 0) * (item.purchasePricePerUnit || 0)) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         </div>
                       </div>
@@ -901,22 +908,15 @@ const PurchasesPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Total Amount *
+                    Total Amount (auto-calculated)
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.totalAmount}
-                    onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
-                    required
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                  <div className={`w-full px-3 py-2 border rounded-lg ${
                       isDarkMode
-                          ? 'bg-gray-600 border-gray-500 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    placeholder="0.00"
-                  />
+                        ? 'bg-gray-600 border-gray-500 text-white'
+                        : 'bg-gray-100 border-gray-300 text-gray-900'
+                    }`}>
+                    ₱{Number((formData.purchaseItems || []).reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.purchasePricePerUnit || 0)), 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                   </div>
                 </div>
                 </div>

@@ -287,7 +287,7 @@ const PurchaseItemsPage = ({ isDarkMode }) => {
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Value</p>
               <p className="text-2xl font-bold text-green-600">
                 ₱{purchaseItems
-                  .reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0)
+                  .reduce((sum, item) => sum + ((item.quantity || 0) * (item.purchasePricePerUnit || 0)), 0)
                   .toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
@@ -387,7 +387,7 @@ const PurchaseItemsPage = ({ isDarkMode }) => {
                   <div className="flex justify-between">
                     <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Value:</span>
                     <span className="font-bold text-green-600">
-                      ₱{Number((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₱{Number((item.quantity || 0) * (item.purchasePricePerUnit || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
