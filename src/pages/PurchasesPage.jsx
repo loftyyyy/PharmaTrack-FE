@@ -668,7 +668,9 @@ const PurchasesPage = ({ isDarkMode }) => {
             <div>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Value</p>
               <p className="text-2xl font-bold text-pharma-teal">
-                ₱{purchases.reduce((sum, p) => sum + p.totalAmount, 0).toFixed(2)}
+                ₱{purchases
+                  .reduce((sum, p) => sum + (p.totalAmount || 0), 0)
+                  .toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="text-2xl">💰</div>
@@ -758,7 +760,7 @@ const PurchasesPage = ({ isDarkMode }) => {
               {/* Total Amount */}
               <div className="text-center mb-6">
                 <div className={`text-3xl font-bold ${isDarkMode ? 'text-pharma-teal' : 'text-pharma-teal'}`}>
-                  ₱{purchase.totalAmount?.toFixed(2) || '0.00'}
+                  ₱{Number(purchase.totalAmount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</p>
               </div>
@@ -777,7 +779,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{item.productName || 'Unknown Product'}</p>
                           <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Qty: {item.quantity || 0} × ₱{item.unitPrice?.toFixed(2) || '0.00'}
+                            Qty: {item.quantity || 0} × ₱{Number(item.unitPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             Batch: {item.batchNumber || 'N/A'}
@@ -785,7 +787,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                         </div>
                         <div className="text-right ml-2">
                           <div className="font-semibold text-sm">
-                            ₱{((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}
+                            ₱{(((item.quantity || 0) * (item.unitPrice || 0)) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         </div>
                       </div>
@@ -1154,14 +1156,14 @@ const PurchasesPage = ({ isDarkMode }) => {
                               <span className="font-medium text-lg">{item.productName}</span>
                               <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
                                 <div>Batch: {item.batchNumber}</div>
-                                <div>Qty: {item.quantity} | Unit Price: ₱{item.unitPrice.toFixed(2)} | Purchase Price: ₱{item.purchasePricePerUnit.toFixed(2)}</div>
+                                <div>Qty: {item.quantity} | Unit Price: ₱{Number(item.unitPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Purchase Price: ₱{Number(item.purchasePricePerUnit || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 <div>Manufacturing: {new Date(item.manufacturingDate).toLocaleDateString()} | Expiry: {new Date(item.expiryDate).toLocaleDateString()}</div>
                                 {item.location && <div>Location: {item.location}</div>}
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className="font-bold text-lg">
-                                ₱{(item.quantity * item.unitPrice).toFixed(2)}
+                                ₱{Number((item.quantity || 0) * (item.unitPrice || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                               <button
                                 type="button"
