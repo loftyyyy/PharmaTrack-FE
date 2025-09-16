@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import purchasesApi from '../services/purchasesApi'
 import suppliersApi from '../services/suppliersApi'
 import productsApi from '../services/productsApi'
+import productBatchesApi from '../services/productBatchesApi'
 
 const PurchasesPage = ({ isDarkMode }) => {
   const navigate = useNavigate()
@@ -268,7 +269,7 @@ const PurchasesPage = ({ isDarkMode }) => {
     })
   }
 
-  const addPurchaseItem = () => {
+  const addPurchaseItem = async () => {
     // Validate required fields
     if (!newPurchaseItem.productId || !newPurchaseItem.batchNumber || !newPurchaseItem.quantity || 
         !newPurchaseItem.unitPrice || !newPurchaseItem.purchasePricePerUnit || 
@@ -326,6 +327,21 @@ const PurchasesPage = ({ isDarkMode }) => {
     }
 
     const selectedProduct = products.find(p => p.productId === parseInt(newPurchaseItem.productId))
+
+    // Backend validation: check if productId + batchNumber already exists
+    try {
+      const checkResponse = await productBatchesApi.checkExists({
+        productId: parseInt(newPurchaseItem.productId),
+        batchNumber: newPurchaseItem.batchNumber
+      })
+      if (checkResponse && checkResponse.exists === true) {
+        setError('The batch number already exists for the selected product. Please use a unique batch number.')
+        return
+      }
+    } catch (err) {
+      setError('Failed to validate batch uniqueness: ' + err.message)
+      return
+    }
 
     // Create purchase item matching new PurchaseItemCreateDTO structure
     const purchaseItem = {
