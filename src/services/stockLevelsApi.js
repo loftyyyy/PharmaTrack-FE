@@ -12,19 +12,61 @@ export const stockLevelsApi = {
       // Fetch all product batches (which include product information)
       const batches = await productBatchesApi.getAll()
       
+      // Helper: robust key for grouping to avoid merging different products
+      const getProductGroupKey = (batch) => {
+        const product = batch.product || {}
+        const productId = product.id || batch.productId
+        if (productId !== undefined && productId !== null) return `id:${productId}`
+        const sku = product.sku || batch.sku
+        if (sku) return `sku:${sku}`
+        const name = product.name || batch.productName
+        if (name) return `name:${name}`
+        // Fallback to batch id to prevent accidental merging
+        return `batch:${batch.id || Math.random().toString(36).slice(2)}`
+      }
+
+      // Helper: parse array/object timestamps safely to milliseconds
+      const toTimeMs = (value) => {
+        try {
+          if (!value) return null
+          if (Array.isArray(value)) {
+            const [year, monthOneBased, day, hour = 0, minute = 0, second = 0, nano = 0] = value
+            const monthIndex = (monthOneBased || 1) - 1
+            const ms = Math.floor((nano || 0) / 1_000_000)
+            return Date.UTC(year, monthIndex, day, hour, minute, second, ms)
+          }
+          if (typeof value === 'object') {
+            if (value.date && value.time) {
+              return new Date(`${value.date}T${value.time}`).getTime()
+            }
+            if (value.year && value.monthValue && value.dayOfMonth) {
+              const m = String(value.monthValue).padStart(2, '0')
+              const d = String(value.dayOfMonth).padStart(2, '0')
+              const hh = String(value.hour || 0).padStart(2, '0')
+              const mm = String(value.minute || 0).padStart(2, '0')
+              const ss = String(value.second || 0).padStart(2, '0')
+              return new Date(`${value.year}-${m}-${d}T${hh}:${mm}:${ss}Z`).getTime()
+            }
+          }
+          return new Date(value).getTime()
+        } catch {
+          return null
+        }
+      }
+
       // Group batches by product ID to calculate stock levels
       const stockLevelsByProduct = batches.reduce((acc, batch) => {
-        const productId = batch.product?.id || batch.productId
+        const groupKey = getProductGroupKey(batch)
         
-        if (!acc[productId]) {
+        if (!acc[groupKey]) {
           // Initialize stock level for this product
-          acc[productId] = {
-            id: productId,
-            productName: batch.product?.name || 'Unknown Product',
-            category: batch.product?.category?.name || 'Uncategorized',
+          acc[groupKey] = {
+            id: (batch.product && batch.product.id != null) ? batch.product.id : groupKey,
+            productName: batch.product?.name || batch.productName || 'Unknown Product',
+            category: batch.product?.category?.name || batch.category?.name || 'Uncategorized',
             currentStock: 0,
-            minStock: batch.product?.minimumStock || 0,
-            unit: batch.product?.unit || 'units',
+            minStock: batch.product?.minimumStock || batch.minimumStock || 0,
+            unit: batch.product?.unit || batch.unit || 'units',
             location: batch.location || batch.product?.location || 'N/A',
             lastUpdated: null,
             status: 'normal',
@@ -34,19 +76,19 @@ export const stockLevelsApi = {
         }
         
         // Add this batch to the product's batch list
-        acc[productId].batches.push(batch)
+        acc[groupKey].batches.push(batch)
         
         // Add to current stock if batch is available
         if (batch.status) {
-          acc[productId].currentStock += batch.quantity || 0
+          acc[groupKey].currentStock += batch.quantity || 0
         }
         
         // Update last updated timestamp
-        const batchDate = batch.createdAt || batch.manufacturingDate
-        if (batchDate) {
-          const batchTime = new Date(batchDate).getTime()
-          if (!acc[productId].lastUpdated || batchTime > acc[productId].lastUpdated) {
-            acc[productId].lastUpdated = batchTime
+        const batchDate = batch.createdAt || batch.manufacturingDate || batch.updatedAt
+        const batchTime = toTimeMs(batchDate)
+        if (batchTime) {
+          if (!acc[groupKey].lastUpdated || batchTime > acc[groupKey].lastUpdated) {
+            acc[groupKey].lastUpdated = batchTime
           }
         }
         
