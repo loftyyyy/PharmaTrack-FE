@@ -4,6 +4,27 @@ import inventoryLogsApi from '../services/inventoryLogsApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 import { getErrorMessage } from '../utils/errorHandler'
 
+// Converts backend array timestamp [yyyy, MM, dd, HH, mm, ss, nanos?] to ISO string
+function toIsoFromBackendTimestamp(timestamp) {
+  try {
+    if (!timestamp) return null
+    if (Array.isArray(timestamp)) {
+      const [year, monthOneBased, day, hour = 0, minute = 0, second = 0, nano = 0] = timestamp
+      const monthIndex = (monthOneBased || 1) - 1 // JS Date months are 0-based
+      const millisecond = Math.floor((nano || 0) / 1_000_000)
+      // Use UTC to avoid local timezone shifting raw components
+      const date = new Date(Date.UTC(year, monthIndex, day, hour, minute, second, millisecond))
+      return date.toISOString()
+    }
+    // If already string/number, attempt to parse and normalize to ISO
+    const date = new Date(timestamp)
+    if (isNaN(date.getTime())) return null
+    return date.toISOString()
+  } catch {
+    return null
+  }
+}
+
 // Simple professional-looking inline SVG icons (no external deps)
 const IconChartBars = ({ className = '' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -94,7 +115,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
         saleId: log.saleId || null,
         purchaseId: log.purchaseId || null,
         adjustmentReference: log.adjustmentReference || null,
-        createdAt: log.createdAt ? (Array.isArray(log.createdAt) ? new Date(...log.createdAt).toISOString() : log.createdAt) : new Date().toISOString(),
+        createdAt: toIsoFromBackendTimestamp(log.createdAt) || new Date().toISOString(),
       })) : []
       
       setLogs(normalized)
