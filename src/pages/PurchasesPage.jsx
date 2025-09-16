@@ -16,6 +16,7 @@ const PurchasesPage = ({ isDarkMode }) => {
   const [selectedPurchase, setSelectedPurchase] = useState(null)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
+  const [itemError, setItemError] = useState(null)
   
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('')
@@ -274,47 +275,47 @@ const PurchasesPage = ({ isDarkMode }) => {
     if (!newPurchaseItem.productId || !newPurchaseItem.batchNumber || !newPurchaseItem.quantity || 
         !newPurchaseItem.unitPrice || !newPurchaseItem.purchasePricePerUnit || 
         !newPurchaseItem.expiryDate || !newPurchaseItem.manufacturingDate) {
-      setError('Please fill in all required purchase item fields')
+      setItemError('Please fill in all required purchase item fields')
       return
     }
 
     // Validate quantity (must be at least 1)
     const quantity = parseInt(newPurchaseItem.quantity)
     if (quantity < 1) {
-      setError('Quantity must be at least 1')
+      setItemError('Quantity must be at least 1')
       return
     }
 
     // Validate batch quantity (must be at least 1)
     const batchQuantity = parseInt(newPurchaseItem.quantity) // Using same value for now
     if (batchQuantity < 1) {
-      setError('Batch quantity must be at least 1')
+      setItemError('Batch quantity must be at least 1')
       return
     }
 
     // Validate unit price (must be positive)
     const unitPrice = parseFloat(newPurchaseItem.unitPrice)
     if (unitPrice < 0) {
-      setError('Unit price must be a positive value')
+      setItemError('Unit price must be a positive value')
       return
     }
 
     // Validate purchase price per unit (must be positive)
     const purchasePricePerUnit = parseFloat(newPurchaseItem.purchasePricePerUnit)
     if (purchasePricePerUnit <= 0) {
-      setError('Purchase price per unit must be greater than 0')
+      setItemError('Purchase price per unit must be greater than 0')
       return
     }
 
     // Validate batch number length
     if (newPurchaseItem.batchNumber.length > 100) {
-      setError('Batch number must not exceed 100 characters')
+      setItemError('Batch number must not exceed 100 characters')
       return
     }
 
     // Validate location length if provided
     if (newPurchaseItem.location && newPurchaseItem.location.length > 50) {
-      setError('Location must not exceed 50 characters')
+      setItemError('Location must not exceed 50 characters')
       return
     }
 
@@ -322,7 +323,7 @@ const PurchasesPage = ({ isDarkMode }) => {
     const manufacturingDate = new Date(newPurchaseItem.manufacturingDate)
     const expiryDate = new Date(newPurchaseItem.expiryDate)
     if (manufacturingDate >= expiryDate) {
-      setError('Manufacturing date must be before expiry date')
+      setItemError('Manufacturing date must be before expiry date')
       return
     }
 
@@ -335,11 +336,11 @@ const PurchasesPage = ({ isDarkMode }) => {
         batchNumber: newPurchaseItem.batchNumber
       })
       if (checkResponse && checkResponse.exists === true) {
-        setError('The batch number already exists for the selected product. Please use a unique batch number.')
+        setItemError('The batch number already exists for the selected product. Please use a unique batch number.')
         return
       }
     } catch (err) {
-      setError('Failed to validate batch uniqueness: ' + err.message)
+      setItemError('Failed to validate batch uniqueness: ' + err.message)
       return
     }
 
@@ -379,7 +380,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       manufacturingDate: '',
       location: ''
     })
-    setError(null) // Clear any previous errors
+    setItemError(null) // Clear any previous item errors
   }
 
   const removePurchaseItem = (index) => {
@@ -953,6 +954,13 @@ const PurchasesPage = ({ isDarkMode }) => {
                     {formData.purchaseItems.length} item{formData.purchaseItems.length !== 1 ? 's' : ''}
                   </div>
                 </div>
+                {itemError && (
+                  <div className={`mb-4 p-3 rounded border text-sm ${
+                    isDarkMode ? 'bg-red-900/40 border-red-700 text-red-200' : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    {itemError}
+                  </div>
+                )}
                 
                 {/* Add New Item Form */}
                 <div className="space-y-4 mb-4">
