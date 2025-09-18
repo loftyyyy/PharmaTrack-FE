@@ -16,6 +16,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [loadingError, setLoadingError] = useState(null)
+  const [resolvedProduct, setResolvedProduct] = useState(null)
   const [formData, setFormData] = useState({
     batchNumber: '',
     productId: '',
@@ -107,18 +108,10 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                setSubmitting(true)
         setError(null)
         try {
-                     const batchData = {
-             batchNumber: formData.batchNumber,
-             productId: parseInt(formData.productId),
-             manufacturingDate: formData.manufacturingDate,
-             expiryDate: formData.expiryDate,
-             quantity: parseInt(formData.quantity),
-             purchasePricePerUnit: parseFloat(formData.costPerUnit), // Backend expects this field name
-             location: formData.location,
-             // Only include status for updates, not for new batches (backend handles it automatically)
-             // Also don't include status if product is inactive (it should remain unavailable)
-             ...(editingBatch && editingBatch.product && editingBatch.product.active !== false && { batchStatus: formData.status })
-           }
+          // Only update status in edit mode
+          const batchData = {
+            batchStatus: formData.status
+          }
           
                      // Debug: Log the data being sent
            console.log('📋 Form data before processing:', formData)
@@ -176,53 +169,10 @@ const ProductBatchesPage = ({ isDarkMode }) => {
              
              // Auto-hide success message after 3 seconds
              setTimeout(() => setSuccess(null), 3000)
-          } else {
-                         // Add new batch
-             const newBatch = await productBatchesApi.create(batchData)
-             
-             // Debug: Log the backend response to see what fields are available
-             console.log('🔍 Backend response for new batch:', newBatch)
-             console.log('🏷️ Status fields in response:', {
-               batchStatus: newBatch.batchStatus,
-               status: newBatch.status,
-               hasBatchStatus: 'batchStatus' in newBatch,
-               hasStatus: 'status' in newBatch
-             })
-             
-             // Transform backend response to match frontend structure for consistency
-             const transformedBatch = {
-               id: newBatch.productBatchId || newBatch.id,
-               batchNumber: newBatch.batchNumber,
-               productId: newBatch.product?.id || newBatch.productId,
-               product: newBatch.product, // Keep the full product object for display
-               manufacturingDate: newBatch.manufacturingDate,
-               expiryDate: newBatch.expiryDate,
-               quantity: newBatch.quantity,
-               costPerUnit: newBatch.purchasePricePerUnit || newBatch.costPerUnit,
-               location: newBatch.location,
-               // Use the status from backend response, fallback to AVAILABLE
-               status: newBatch.batchStatus || newBatch.status || 'AVAILABLE'
-             }
-            setBatches([...batches, transformedBatch])
-            setSuccess('Batch created successfully!')
-            
-            // Close modal and reset form on success
-            setShowAddModal(false)
-            setEditingBatch(null)
-            setFormData({
-              batchNumber: '',
-              productId: '',
-              manufacturingDate: '',
-              expiryDate: '',
-              quantity: '',
-              costPerUnit: '',
-              location: '',
-              status: 'AVAILABLE'
-            })
-            
-            // Auto-hide success message after 3 seconds
-            setTimeout(() => setSuccess(null), 3000)
-          }
+         } else {
+           // Creation disabled
+           throw new Error('Batch creation is disabled')
+         }
         } catch (error) {
           console.error('Failed to save batch:', error)
           const errorInfo = getErrorMessage(error)
@@ -256,7 +206,19 @@ const ProductBatchesPage = ({ isDarkMode }) => {
        hasId: 'id' in batch
      })
      
-     setEditingBatch(batch)
+    setEditingBatch(batch)
+    // Resolve and display the product tied to this batch
+    const pid = batch.product?.id || batch.productId
+    const local = getProductById(pid)
+    if (batch.product) {
+      setResolvedProduct(batch.product)
+    } else if (local) {
+      setResolvedProduct(local)
+    } else if (pid) {
+      productsApi.getById(pid).then(setResolvedProduct).catch(() => setResolvedProduct(null))
+    } else {
+      setResolvedProduct(null)
+    }
      
      // Convert backend date format to frontend format for form inputs
      const convertDateForForm = (dateValue) => {
@@ -585,38 +547,33 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                     required
                     value={formData.batchNumber}
                     onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none opacity-60 ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
+                    disabled
                     placeholder="Enter batch number"
                   />
                 </div>
                 
-                                 <div>
+                <div>
                    <label className={`block text-sm font-medium mb-2 ${
                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
                    }`}>
                      Product *
                    </label>
-                   <select
-                     required
-                     value={formData.productId}
-                     onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                       isDarkMode
-                         ? 'bg-gray-700 border-gray-600 text-white'
-                         : 'bg-white border-gray-300 text-gray-900'
-                     }`}
-                   >
-                     <option value="">Select Product</option>
-                     {products.map((product) => (
-                       <option key={product.id} value={product.id}>
-                         {formatProductDisplay(product)}
-                       </option>
-                     ))}
-                   </select>
+                  <input
+                    type="text"
+                    value={formatProductDisplay(resolvedProduct || (products.find(p => p.id === parseInt(formData.productId)) || editingBatch?.product))}
+                    readOnly
+                    disabled
+                    className={`w-full px-3 py-2 border rounded-lg opacity-60 ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
                  </div>
                 
                 <div>
@@ -630,11 +587,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                     required
                     value={formData.manufacturingDate}
                     onChange={(e) => setFormData({ ...formData, manufacturingDate: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none opacity-60 ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
+                    disabled
                   />
                 </div>
                 
@@ -649,11 +607,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                     required
                     value={formData.expiryDate}
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none opacity-60 ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
+                    disabled
                   />
                 </div>
                 
@@ -669,11 +628,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                     min="1"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none opacity-60 ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
+                    disabled
                     placeholder="Enter quantity"
                   />
                 </div>
@@ -691,11 +651,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                      step="0.01"
                      value={formData.costPerUnit}
                      onChange={(e) => setFormData({ ...formData, costPerUnit: e.target.value })}
-                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none opacity-60 ${
                        isDarkMode
                          ? 'bg-gray-700 border-gray-600 text-white'
                          : 'bg-white border-gray-300 text-gray-900'
                      }`}
+                    disabled
                      placeholder="Enter cost per unit"
                    />
                  </div>
@@ -711,11 +672,12 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                      maxLength="50"
                      value={formData.location}
                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none opacity-60 ${
                        isDarkMode
                          ? 'bg-gray-700 border-gray-600 text-white'
                          : 'bg-white border-gray-300 text-gray-900'
                      }`}
+                    disabled
                      placeholder="Enter storage location"
                    />
                  </div>
