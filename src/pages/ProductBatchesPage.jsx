@@ -108,8 +108,15 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                setSubmitting(true)
         setError(null)
         try {
-          // Only update status in edit mode
+          // Send all fields back using the values as fetched/populated in the form
           const batchData = {
+            batchNumber: formData.batchNumber,
+            productId: parseInt(formData.productId),
+            manufacturingDate: formData.manufacturingDate,
+            expiryDate: formData.expiryDate,
+            quantity: parseInt(formData.quantity),
+            purchasePricePerUnit: parseFloat(formData.costPerUnit),
+            location: formData.location,
             batchStatus: formData.status
           }
           
