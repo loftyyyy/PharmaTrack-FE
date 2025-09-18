@@ -402,19 +402,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
              </svg>
              Refresh
            </button>
-                        <button
-               onClick={() => {
-                 setError(null)
-                 setSuccess(null)
-                 setShowAddModal(true)
-               }}
-               className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 hover:shadow-lg transition-all duration-200"
-             >
-             <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-             </svg>
-             Add Batch
-           </button>
+          {/* Add Batch button removed as per requirement */}
          </div>
        </div>
 
@@ -582,9 +570,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
           <div className={`rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
-            <h2 className="text-xl font-bold mb-4">
-              {editingBatch ? 'Edit Batch' : 'Add New Batch'}
-            </h2>
+            <h2 className="text-xl font-bold mb-4">Edit Batch</h2>
             
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

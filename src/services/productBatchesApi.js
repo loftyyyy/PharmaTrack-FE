@@ -57,42 +57,7 @@ export const productBatchesApi = {
     }
   },
 
-  // Create a new product batch
-  create: async (batchData) => {
-    try {
-      const accessToken = localStorage.getItem('pharma_access_token')
-      console.log('🔑 Using token for create batch:', accessToken ? `${accessToken.substring(0, 20)}...` : 'No token found')
-      console.log('📤 Sending batch data:', JSON.stringify(batchData, null, 2))
-      
-      const response = await fetch(`${BASE_URL}/productBatches/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(batchData)
-      })
-      
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`
-        try {
-          const errorData = await response.json()
-          console.log('📄 Backend error response:', errorData)
-          errorMessage = errorData.message || errorData.error || errorMessage
-        } catch (parseError) {
-          console.log('Could not parse error response:', parseError)
-        }
-        throw new Error(errorMessage)
-      }
-      
-      const result = await response.json()
-      console.log('✅ Batch created successfully:', result)
-      return result
-    } catch (error) {
-      console.error('Failed to create product batch:', error)
-      throw error
-    }
-  },
+  // create: removed per requirement to disable batch creation from frontend
 
   // Get a specific product batch by ID
   getById: async (id) => {
