@@ -293,20 +293,38 @@ const ProductBatchesPage = ({ isDarkMode }) => {
   }
 
   // Helper function to get status color and display
-  const getStatusColor = (status) => {
-    switch (status?.toUpperCase()) {
+  const getStatusColor = (status, isDark) => {
+    const key = status?.toUpperCase()
+    if (isDark) {
+      switch (key) {
+        case 'AVAILABLE':
+          return 'bg-emerald-900/30 text-emerald-300 border border-emerald-700'
+        case 'SOLD_OUT':
+          return 'bg-rose-900/30 text-rose-300 border border-rose-700'
+        case 'EXPIRED':
+          return 'bg-orange-900/30 text-orange-300 border border-orange-700'
+        case 'RECALLED':
+          return 'bg-amber-900/30 text-amber-300 border border-amber-700'
+        case 'UNAVAILABLE':
+          return 'bg-slate-800 text-slate-300 border border-slate-700'
+        default:
+          return 'bg-slate-800 text-slate-300 border border-slate-700'
+      }
+    }
+    // Light mode
+    switch (key) {
       case 'AVAILABLE':
-        return 'bg-green-100 text-green-800'
+        return 'bg-emerald-100 text-emerald-800'
       case 'SOLD_OUT':
-        return 'bg-red-100 text-red-800'
+        return 'bg-rose-100 text-rose-800'
       case 'EXPIRED':
         return 'bg-orange-100 text-orange-800'
       case 'RECALLED':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-amber-100 text-amber-800'
       case 'UNAVAILABLE':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-slate-200 text-slate-700'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-slate-200 text-slate-700'
     }
   }
 
@@ -485,7 +503,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                                          </td>
                                                                                    <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus(batch))}`}>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getEffectiveStatus(batch), isDarkMode)}`}>
                             {getEffectiveStatus(batch)}
                           </span>
                           {batch.product && batch.product.active === false && (
