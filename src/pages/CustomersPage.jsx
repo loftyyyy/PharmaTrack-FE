@@ -1,136 +1,99 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import customersApi from '../services/customersApi'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 const CustomersPage = ({ isDarkMode }) => {
-  const { user, apiRequest } = useAuth()
+  useAuth()
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    address: '',
-    dateOfBirth: '',
-    insuranceInfo: '',
-    allergies: '',
-    notes: ''
+    phoneNumber: '',
+    addressStreet: '',
+    addressCity: '',
+    addressState: '',
+    addressZipCode: ''
   })
 
-  // Mock data for now
-  useEffect(() => {
-    const mockCustomers = [
-      {
-        id: 1,
-        name: 'John Smith',
-        email: 'john.smith@email.com',
-        phone: '+1-555-0123',
-        address: '123 Main St, City, State 12345',
-        dateOfBirth: '1980-05-15',
-        insuranceInfo: 'Blue Cross Blue Shield - Policy #BC123456',
-        allergies: 'Penicillin, Aspirin',
-        notes: 'Prefers generic medications when available',
-        lastVisit: '2024-01-15T10:30:00',
-        totalPurchases: 1250.75,
-        status: 'active'
-      },
-      {
-        id: 2,
-        name: 'Sarah Johnson',
-        email: 'sarah.j@email.com',
-        phone: '+1-555-0456',
-        address: '456 Oak Ave, City, State 12345',
-        dateOfBirth: '1975-09-22',
-        insuranceInfo: 'Aetna - Policy #AE789012',
-        allergies: 'None known',
-        notes: 'Regular customer, monthly prescription refills',
-        lastVisit: '2024-01-18T14:20:00',
-        totalPurchases: 2100.50,
-        status: 'active'
-      },
-      {
-        id: 3,
-        name: 'Michael Brown',
-        email: 'mbrown@email.com',
-        phone: '+1-555-0789',
-        address: '789 Pine St, City, State 12345',
-        dateOfBirth: '1990-12-08',
-        insuranceInfo: 'United Healthcare - Policy #UH345678',
-        allergies: 'Sulfa drugs',
-        notes: 'Works night shift, prefers evening pickups',
-        lastVisit: '2024-01-12T16:45:00',
-        totalPurchases: 875.25,
-        status: 'active'
-      }
-    ]
-    setTimeout(() => {
-      setCustomers(mockCustomers)
+  const loadCustomers = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await customersApi.getAll()
+      setCustomers(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setCustomers([])
+      setError({ message: e.message })
+    } finally {
       setLoading(false)
-    }, 500)
+    }
+  }
+
+  useEffect(() => {
+    loadCustomers()
   }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (editingCustomer) {
-      // Update existing customer
-      setCustomers(customers.map(customer => 
-        customer.id === editingCustomer.id 
-          ? { ...customer, ...formData }
-          : customer
-      ))
-    } else {
-      // Add new customer
-      const newCustomer = {
-        id: Date.now(),
-        ...formData,
-        lastVisit: new Date().toISOString(),
-        totalPurchases: 0,
-        status: 'active'
+    try {
+      setError(null)
+      const payload = {
+        name: formData.name,
+        phoneNumber: formData.phoneNumber || '',
+        email: formData.email || '',
+        addressStreet: formData.addressStreet || '',
+        addressCity: formData.addressCity || '',
+        addressState: formData.addressState || '',
+        addressZipCode: formData.addressZipCode || ''
       }
-      setCustomers([...customers, newCustomer])
+      if (editingCustomer) {
+        await customersApi.update(editingCustomer.customerId, payload)
+      } else {
+        await customersApi.create(payload)
+      }
+      setShowAddModal(false)
+      setEditingCustomer(null)
+      setFormData({ name: '', email: '', phoneNumber: '', addressStreet: '', addressCity: '', addressState: '', addressZipCode: '' })
+      loadCustomers()
+    } catch (e) {
+      setError({ message: e.message })
     }
-    
-    setShowAddModal(false)
-    setEditingCustomer(null)
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      dateOfBirth: '',
-      insuranceInfo: '',
-      allergies: '',
-      notes: ''
-    })
   }
 
   const handleEdit = (customer) => {
     setEditingCustomer(customer)
     setFormData({
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      dateOfBirth: customer.dateOfBirth,
-      insuranceInfo: customer.insuranceInfo,
-      allergies: customer.allergies,
-      notes: customer.notes
+      name: customer.name || '',
+      email: customer.email || '',
+      phoneNumber: customer.phoneNumber || '',
+      addressStreet: customer.addressStreet || '',
+      addressCity: customer.addressCity || '',
+      addressState: customer.addressState || '',
+      addressZipCode: customer.addressZipCode || ''
     })
     setShowAddModal(true)
   }
 
-  const handleDelete = (customerId) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      setCustomers(customers.filter(customer => customer.id !== customerId))
+  const handleDelete = async (customerId) => {
+    if (!window.confirm('Are you sure you want to delete this customer?')) return
+    try {
+      await customersApi.remove(customerId)
+      loadCustomers()
+    } catch (e) {
+      setError({ message: e.message })
     }
   }
 
   const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
+    (customer.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (customer.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (customer.phoneNumber || '').includes(searchTerm)
   )
 
   if (loading) {
@@ -164,6 +127,12 @@ const CustomersPage = ({ isDarkMode }) => {
         </button>
       </div>
 
+      <ErrorDisplay 
+        error={error}
+        onDismiss={() => setError(null)}
+        isDarkMode={isDarkMode}
+      />
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -179,24 +148,24 @@ const CustomersPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Customers</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>With Email</p>
               <p className="text-2xl font-bold text-green-600">
-                {customers.filter(c => c.status === 'active').length}
+                {customers.filter(c => c.email).length}
               </p>
             </div>
-            <div className="text-2xl">✅</div>
+            <div className="text-2xl">✉️</div>
           </div>
         </div>
 
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify_between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Sales</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>With Phone</p>
               <p className="text-2xl font-bold text-pharma-teal">
-                ${customers.reduce((sum, c) => sum + c.totalPurchases, 0).toFixed(2)}
+                {customers.filter(c => c.phoneNumber).length}
               </p>
             </div>
-            <div className="text-2xl">💰</div>
+            <div className="text-2xl">📞</div>
           </div>
         </div>
       </div>
@@ -219,7 +188,7 @@ const CustomersPage = ({ isDarkMode }) => {
       {/* Customers Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredCustomers.map((customer) => (
-          <div key={customer.id} className={`rounded-lg border p-6 ${
+          <div key={customer.customerId} className={`rounded-lg border p-6 ${
             isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
           }`}>
             <div className="flex justify-between items-start mb-4">
@@ -229,44 +198,33 @@ const CustomersPage = ({ isDarkMode }) => {
                   {customer.email}
                 </p>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {customer.phone}
+                  {customer.phoneNumber}
                 </p>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                customer.status === 'active'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {customer.status}
+              <span className={`px-2 py-1 rounded-full text-xs font-medium bg-slate-200 text-slate-700`}>
+                Created {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : ''}
               </span>
             </div>
 
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
-              <p className="mb-1">📍 {customer.address}</p>
-              <p className="mb-1">🎂 Born: {new Date(customer.dateOfBirth).toLocaleDateString()}</p>
-              {customer.allergies && (
-                <p className="mb-1 text-red-600">⚠️ Allergies: {customer.allergies}</p>
-              )}
+              <p className="mb-1">📍 {[
+                customer.addressStreet,
+                customer.addressCity,
+                customer.addressState,
+                customer.addressZipCode
+              ].filter(Boolean).join(', ') || '—'}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Last Visit</p>
-                <p className="font-medium">{new Date(customer.lastVisit).toLocaleDateString()}</p>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Customer ID</p>
+                <p className="font-medium">#{customer.customerId}</p>
               </div>
               <div>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Purchases</p>
-                <p className="font-bold text-pharma-teal">${customer.totalPurchases.toFixed(2)}</p>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email</p>
+                <p className="font-bold text-pharma-teal">{customer.email || '—'}</p>
               </div>
             </div>
-
-            {customer.notes && (
-              <div className={`mb-4 p-3 rounded ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <strong>Notes:</strong> {customer.notes}
-                </p>
-              </div>
-            )}
 
             <div className="flex space-x-2">
               <button
@@ -280,12 +238,7 @@ const CustomersPage = ({ isDarkMode }) => {
                 Edit
               </button>
               <button
-                className="flex-1 py-2 px-3 rounded text-sm font-medium bg-pharma-teal text-white hover:bg-pharma-medium transition-colors"
-              >
-                View History
-              </button>
-              <button
-                onClick={() => handleDelete(customer.id)}
+                onClick={() => handleDelete(customer.customerId)}
                 className="py-2 px-3 rounded text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
               >
                 Delete
@@ -358,13 +311,12 @@ const CustomersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Phone *
+                    Phone
                   </label>
                   <input
                     type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
@@ -373,100 +325,84 @@ const CustomersPage = ({ isDarkMode }) => {
                     placeholder="Enter phone number"
                   />
                 </div>
+              </div>
+              
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.addressStreet}
+                    onChange={(e) => setFormData({ ...formData, addressStreet: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="Enter street address"
+                  />
+                </div>
                 
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Date of Birth
+                    City
                   </label>
                   <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    type="text"
+                    value={formData.addressCity}
+                    onChange={(e) => setFormData({ ...formData, addressCity: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
+                    placeholder="Enter city"
                   />
                 </div>
-              </div>
-              
-              <div className="mt-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Address
-                </label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  rows="2"
-                  placeholder="Enter address"
-                />
-              </div>
-              
-              <div className="mt-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Insurance Information
-                </label>
-                <input
-                  type="text"
-                  value={formData.insuranceInfo}
-                  onChange={(e) => setFormData({ ...formData, insuranceInfo: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="Enter insurance details"
-                />
-              </div>
-              
-              <div className="mt-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Allergies
-                </label>
-                <input
-                  type="text"
-                  value={formData.allergies}
-                  onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="Enter known allergies"
-                />
-              </div>
-              
-              <div className="mt-4">
-                <label className={`block text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Notes
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                  rows="3"
-                  placeholder="Enter any additional notes"
-                />
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    State/Province
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.addressState}
+                    onChange={(e) => setFormData({ ...formData, addressState: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline:none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Enter state/province"
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Zip Code
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.addressZipCode}
+                    onChange={(e) => setFormData({ ...formData, addressZipCode: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                    placeholder="Enter zip/postal code"
+                  />
+                </div>
               </div>
               
               <div className="flex space-x-3 mt-6">
@@ -475,16 +411,7 @@ const CustomersPage = ({ isDarkMode }) => {
                   onClick={() => {
                     setShowAddModal(false)
                     setEditingCustomer(null)
-                    setFormData({
-                      name: '',
-                      email: '',
-                      phone: '',
-                      address: '',
-                      dateOfBirth: '',
-                      insuranceInfo: '',
-                      allergies: '',
-                      notes: ''
-                    })
+                    setFormData({ name: '', email: '', phoneNumber: '', addressStreet: '', addressCity: '', addressState: '', addressZipCode: '' })
                   }}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                     isDarkMode
@@ -510,3 +437,4 @@ const CustomersPage = ({ isDarkMode }) => {
 }
 
 export default CustomersPage
+
