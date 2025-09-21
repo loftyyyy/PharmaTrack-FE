@@ -801,8 +801,8 @@ const PurchasesPage = ({ isDarkMode }) => {
                   <h4 className={`font-semibold mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                     Items ({purchase.purchaseItems.length})
                   </h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {purchase.purchaseItems.slice(0, 3).map((item, index) => (
+                  <div className="space-y-2 max-h-40 overflow-hidden">
+                    {purchase.purchaseItems.map((item, index) => (
                       <div key={index} className={`flex justify-between items-center py-2 px-3 rounded-lg ${
                         isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
                       }`}>
@@ -822,11 +822,6 @@ const PurchasesPage = ({ isDarkMode }) => {
                         </div>
                       </div>
                     ))}
-                    {purchase.purchaseItems.length > 3 && (
-                      <p className={`text-xs text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        +{purchase.purchaseItems.length - 3} more items
-                      </p>
-                    )}
                   </div>
                 </div>
               )}
