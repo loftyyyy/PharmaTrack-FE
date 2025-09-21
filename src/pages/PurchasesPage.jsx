@@ -407,6 +407,12 @@ const PurchasesPage = ({ isDarkMode }) => {
   }
 
   const openEditModal = (purchase) => {
+    // Prevent editing received purchases
+    if (purchase.purchaseStatus === 'RECEIVED') {
+      setError('Cannot edit received purchases. This purchase has already been received and cannot be modified.')
+      return
+    }
+    
     setSelectedPurchase(purchase)
     setFormData({
       supplierId: '',
@@ -827,19 +833,32 @@ const PurchasesPage = ({ isDarkMode }) => {
 
               {/* Action Button */}
               <div className="flex justify-center">
-                <button
-                  onClick={() => openEditModal(purchase)}
-                  className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                {purchase.purchaseStatus === 'RECEIVED' ? (
+                  <div className={`w-full py-2 px-4 rounded-lg text-sm font-medium text-center ${
                     isDarkMode
-                      ? 'bg-pharma-teal text-white hover:bg-pharma-medium hover:shadow-lg'
-                      : 'bg-pharma-teal text-white hover:bg-pharma-medium hover:shadow-lg'
-                  }`}
-                >
-                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                  Edit Status
-                </button>
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}>
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Received - Cannot Edit
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openEditModal(purchase)}
+                    className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      isDarkMode
+                        ? 'bg-pharma-teal text-white hover:bg-pharma-medium hover:shadow-lg'
+                        : 'bg-pharma-teal text-white hover:bg-pharma-medium hover:shadow-lg'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Edit Status
+                  </button>
+                )}
               </div>
             </div>
           </div>
