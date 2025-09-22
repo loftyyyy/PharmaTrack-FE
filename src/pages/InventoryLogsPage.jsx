@@ -77,7 +77,7 @@ const IconDownload = ({ className = '' }) => (
 
 
 const InventoryLogsPage = ({ isDarkMode }) => {
-  const { isAuthenticated, refreshAccessToken } = useAuth()
+  const { isAuthenticated } = useAuth()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -175,32 +175,9 @@ const InventoryLogsPage = ({ isDarkMode }) => {
   const handleExport = async () => {
     try {
       setExporting(true)
-      
-      // Ensure user is authenticated and attempt a proactive refresh
-      if (!isAuthenticated()) {
-        setError('You must be logged in to export inventory logs.')
-        return
-      }
-      try {
-        await refreshAccessToken()
-      } catch {}
-
-      const blob = await inventoryLogsApi.export()
-      downloadBlob(blob, `inventory-logs-${new Date().toISOString().split('T')[0]}.csv`)
-    } catch (e) {
-      console.error('Failed to export logs:', e)
-      // Map 401/Unauthorized to a friendly message without forcing logout
-      const message = (e && e.message) || ''
-      if (message.includes('401') || message.toLowerCase().includes('unauthorized')) {
-        // Fallback to client-side CSV export of current results
-        exportClientCsv()
-        setError(null)
-      } else if (message.includes('403')) {
-        setError('You do not have permission to export inventory logs.')
-      } else {
-        const errorInfo = getErrorMessage(e)
-        setError(errorInfo.message)
-      }
+      // Direct client-side export of currently filtered rows
+      exportClientCsv()
+      setError(null)
     } finally {
       setExporting(false)
     }
