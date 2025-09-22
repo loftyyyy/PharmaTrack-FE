@@ -124,6 +124,65 @@ class ApiService {
     }
   }
 
+  // Download method that returns a Blob and handles token refresh on 401
+  async download(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`
+
+    const buildHeaders = () => {
+      const accessToken = localStorage.getItem('pharma_access_token')
+      return {
+        ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+        'X-Requested-With': 'XMLHttpRequest',
+        Accept: 'text/csv, application/octet-stream',
+        ...(options.headers || {}),
+      }
+    }
+
+    const makeRequest = async () => fetch(url, { ...options, headers: buildHeaders() })
+
+    let response = await makeRequest()
+
+      // Only 401 is an authentication failure that should attempt refresh
+      const isAuthFailure = (resp) => resp.status === 401
+      const looksLikeLoginHtml = async (resp) => {
+        try {
+          const contentType = resp.headers.get('content-type') || ''
+          if (!contentType.includes('text/html')) return false
+          const text = await resp.clone().text()
+          return /<title>.*login.*<\/title>/i.test(text) || /name=["']username["']|name=["']password["']/i.test(text)
+        } catch {
+          return false
+        }
+      }
+
+      if (isAuthFailure(response)) {
+        // Attempt token refresh
+        if (this.refreshTokenCallback) {
+          await this.refreshTokenCallback()
+          await new Promise(resolve => setTimeout(resolve, 300))
+          response = await makeRequest()
+        }
+      }
+
+      if (isAuthFailure(response) || (response.redirected && response.url && /login/i.test(response.url)) || (await looksLikeLoginHtml(response))) {
+        // Do not auto-logout on download endpoints; surface an auth error to the caller instead
+        throw new Error('401 Unauthorized')
+      }
+
+      // Surface 403 Forbidden as a normal error (do not logout)
+      if (response.status === 403) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || '403 Forbidden: You do not have permission to export inventory logs.')
+      }
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return await response.blob()
+  }
+
   // GET request
   async get(endpoint) {
     return this.request(endpoint, { method: 'GET' })

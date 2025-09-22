@@ -77,7 +77,7 @@ const IconDownload = ({ className = '' }) => (
 
 
 const InventoryLogsPage = ({ isDarkMode }) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, refreshAccessToken } = useAuth()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -86,6 +86,50 @@ const InventoryLogsPage = ({ isDarkMode }) => {
   const [selectedLog, setSelectedLog] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [exporting, setExporting] = useState(false)
+
+  const downloadBlob = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  }
+
+  const exportClientCsv = () => {
+    const headers = [
+      'Product','SKU','Batch','ChangeType','QuantityChanged','Reason','SaleId','PurchaseId','AdjustmentReference','CreatedAt'
+    ]
+    const rows = filteredLogs.map(log => [
+      (log.product?.name || ''),
+      (log.product?.sku || ''),
+      (log.productBatch?.batchNumber || log.productBatch?.id || ''),
+      (log.changeType || ''),
+      (log.quantityChanged ?? ''),
+      (log.reason || ''),
+      (log.saleId || ''),
+      (log.purchaseId || ''),
+      (log.adjustmentReference || ''),
+      (log.createdAt ? new Date(log.createdAt).toISOString() : '')
+    ])
+
+    const escapeCsv = (val) => {
+      const s = String(val)
+      if (/[",\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"'
+      }
+      return s
+    }
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(escapeCsv).join(','))
+      .join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    downloadBlob(blob, `inventory-logs-${new Date().toISOString().split('T')[0]}.csv`)
+  }
 
   useEffect(() => {
     // Only load data if user is authenticated
@@ -132,19 +176,31 @@ const InventoryLogsPage = ({ isDarkMode }) => {
     try {
       setExporting(true)
       
+      // Ensure user is authenticated and attempt a proactive refresh
+      if (!isAuthenticated()) {
+        setError('You must be logged in to export inventory logs.')
+        return
+      }
+      try {
+        await refreshAccessToken()
+      } catch {}
+
       const blob = await inventoryLogsApi.export()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `inventory-logs-${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      downloadBlob(blob, `inventory-logs-${new Date().toISOString().split('T')[0]}.csv`)
     } catch (e) {
       console.error('Failed to export logs:', e)
-      const errorInfo = getErrorMessage(e)
-      setError(errorInfo.message)
+      // Map 401/Unauthorized to a friendly message without forcing logout
+      const message = (e && e.message) || ''
+      if (message.includes('401') || message.toLowerCase().includes('unauthorized')) {
+        // Fallback to client-side CSV export of current results
+        exportClientCsv()
+        setError(null)
+      } else if (message.includes('403')) {
+        setError('You do not have permission to export inventory logs.')
+      } else {
+        const errorInfo = getErrorMessage(e)
+        setError(errorInfo.message)
+      }
     } finally {
       setExporting(false)
     }
