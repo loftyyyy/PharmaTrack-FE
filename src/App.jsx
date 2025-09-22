@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginPage from './components/LoginPage'
 import Header from './components/Header'
@@ -32,9 +33,49 @@ import SalesPOSPage from './pages/SalesPOSPage'
 // Import ProtectedRoute component
 import ProtectedRoute from './components/ProtectedRoute'
 
+// Map route paths to page titles
+const ROUTE_TITLE_MAP = {
+  '/dashboard': 'Dashboard',
+  '/profile': 'My Profile',
+  '/all-products': 'All Products',
+  '/categories': 'Categories',
+  '/product-batches': 'Product Batches',
+  '/stock-levels': 'Stock Levels',
+  '/stock-adjustments': 'Stock Adjustments',
+  '/inventory-logs': 'Inventory Logs',
+  '/suppliers': 'Suppliers',
+  '/supplier-mapping': 'Supplier Mapping',
+  '/purchases': 'Purchases',
+  '/purchase-items': 'Purchase Items',
+  '/sales-transactions': 'Sales Transactions',
+  '/users': 'Users',
+  '/roles': 'Roles Management',
+  '/sales-reports': 'Sales Reports',
+  '/purchase-reports': 'Purchase Reports',
+  '/inventory-reports': 'Inventory Reports',
+  '/inventory': 'Inventory',
+  '/orders': 'Orders',
+  '/reports': 'Reports',
+  '/sales-pos': 'Sales POS',
+  '/customers': 'Customers',
+  '/login': 'Login'
+}
+
+const capitalizeWords = (text) => text.replace(/\b\w/g, (c) => c.toUpperCase())
+
+const deriveTitleFromPath = (path) => {
+  const cleaned = path.split('?')[0]
+  const parts = cleaned.split('/').filter(Boolean)
+  if (parts.length === 0) return 'Dashboard'
+  return parts
+    .map((segment) => capitalizeWords(segment.replace(/-/g, ' ')))
+    .join(' / ')
+}
+
 // Protected App Component
 const ProtectedApp = () => {
   const { user, logout, isAuthenticated, loading } = useAuth()
+  const location = useLocation()
   
   // Debug logging for user data in App component
   console.log('=== APP COMPONENT USER DATA ===')
@@ -53,6 +94,22 @@ const ProtectedApp = () => {
 
   // Track if user has manually overridden system preference
   const [isSystemTheme, setIsSystemTheme] = useState(true)
+
+  // Compute auth state for use in effects and render
+  const authenticated = isAuthenticated()
+
+  // Update browser tab title based on route and auth/loading state
+  useEffect(() => {
+    let pageName = 'Loading'
+    if (loading) {
+      pageName = 'Loading'
+    } else if (!authenticated) {
+      pageName = 'Login'
+    } else {
+      pageName = ROUTE_TITLE_MAP[location.pathname] || deriveTitleFromPath(location.pathname)
+    }
+    document.title = `PharmaTrack - ${pageName}`
+  }, [location.pathname, loading, authenticated])
 
   // Listen for system theme changes
   useEffect(() => {
@@ -126,7 +183,6 @@ const ProtectedApp = () => {
   }
 
   // Show login page if not authenticated
-  const authenticated = isAuthenticated()
   console.log('🔍 App authentication check:', {
     authenticated,
     user: !!user,
