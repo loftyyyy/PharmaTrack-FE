@@ -43,6 +43,40 @@ async function request(path, options = {}) {
   return response.text()
 }
 
+async function requestBlob(path, options = {}) {
+  const url = `${BASE_URL}${path}`
+  const headers = {
+    ...getAuthHeaders(),
+    ...(options.headers || {}),
+  }
+
+  console.log('🌐 Making blob request to:', url)
+  console.log('📋 Request headers:', headers)
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  })
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}: ${response.statusText}`
+    // Try to read JSON error first, fallback to text
+    const data = await response.json().catch(async () => (
+      await response.text().catch(() => null)
+    ))
+    if (data) {
+      if (typeof data === 'string') {
+        message = data || message
+      } else {
+        message = data.message || data.error || message
+      }
+    }
+    throw new Error(message)
+  }
+
+  return response.blob()
+}
+
 const inventoryLogsApi = {
   getAll: (params) => {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
@@ -68,7 +102,10 @@ const inventoryLogsApi = {
   },
   export: (params) => {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return request(`/api/v1/inventoryLogs/export${queryString}`, { method: 'GET' })
+    return requestBlob(`/api/v1/inventoryLogs/export${queryString}`, {
+      method: 'GET',
+      headers: { Accept: 'text/csv, application/octet-stream' }
+    })
   }
 }
 
