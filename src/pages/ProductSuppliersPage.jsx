@@ -191,9 +191,21 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
 
   const handleEdit = (productSupplier) => {
     setEditingProductSupplier(productSupplier)
+    const resolvedProductId = (
+      productSupplier.product?.id ??
+      productSupplier.product?.productId ??
+      productSupplier.productId ??
+      null
+    )
+    const resolvedSupplierId = (
+      productSupplier.supplier?.id ??
+      productSupplier.supplier?.supplierId ??
+      productSupplier.supplierId ??
+      null
+    )
     setFormData({
-      productId: ((productSupplier.product?.id ?? productSupplier.product?.productId) ?? '').toString(),
-      supplierId: ((productSupplier.supplier?.id ?? productSupplier.supplier?.supplierId) ?? '').toString(),
+      productId: resolvedProductId != null ? String(resolvedProductId) : '',
+      supplierId: resolvedSupplierId != null ? String(resolvedSupplierId) : '',
       preferredSupplier: productSupplier.preferredSupplier || false,
       supplierProductCode: productSupplier.supplierProductCode || ''
     })
