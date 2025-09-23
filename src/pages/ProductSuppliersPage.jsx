@@ -192,8 +192,8 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
   const handleEdit = (productSupplier) => {
     setEditingProductSupplier(productSupplier)
     setFormData({
-      productId: productSupplier.product?.id || '',
-      supplierId: productSupplier.supplier?.id || '',
+      productId: ((productSupplier.product?.id ?? productSupplier.product?.productId) ?? '').toString(),
+      supplierId: ((productSupplier.supplier?.id ?? productSupplier.supplier?.supplierId) ?? '').toString(),
       preferredSupplier: productSupplier.preferredSupplier || false,
       supplierProductCode: productSupplier.supplierProductCode || ''
     })
