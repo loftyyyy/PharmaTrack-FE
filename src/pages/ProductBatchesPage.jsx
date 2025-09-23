@@ -10,6 +10,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
   const [batches, setBatches] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingBatch, setEditingBatch] = useState(null)
@@ -46,8 +47,11 @@ const ProductBatchesPage = ({ isDarkMode }) => {
      // Fetch batches from API
    const fetchBatches = async () => {
      try {
-       setError(null)
-       setLoadingError(null)
+      setError(null)
+      setLoadingError(null)
+      if (!loading) {
+        setRefreshing(true)
+      }
        const data = await productBatchesApi.getAll()
        console.log('📥 Raw data from fetchBatches:', data)
        console.log('🔍 First batch structure:', data?.[0])
@@ -61,6 +65,8 @@ const ProductBatchesPage = ({ isDarkMode }) => {
        console.error('Failed to fetch batches:', error)
        setLoadingError(error)
        setBatches([])
+     } finally {
+       setRefreshing(false)
      }
    }
 
@@ -367,28 +373,28 @@ const ProductBatchesPage = ({ isDarkMode }) => {
            </p>
          </div>
          <div className="flex space-x-3">
-           <button
-             onClick={() => {
-               setError(null)
-               setSuccess(null)
-               fetchBatches()
-             }}
-             disabled={loading}
-             className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
-               loading
-                 ? 'opacity-50 cursor-not-allowed'
-                 : 'hover:shadow-lg'
-             } ${
-               isDarkMode
-                 ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
-                 : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-             }`}
-           >
-             <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-             </svg>
-             Refresh
-           </button>
+          <button
+            onClick={() => {
+              setError(null)
+              setSuccess(null)
+              fetchBatches()
+            }}
+            disabled={loading || refreshing}
+            className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
+              loading || refreshing
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:shadow-lg'
+            } ${
+              isDarkMode
+                ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <svg className={`w-5 h-5 inline mr-2 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
           {/* Add Batch button removed as per requirement */}
          </div>
        </div>
