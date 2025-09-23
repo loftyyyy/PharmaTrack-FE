@@ -12,16 +12,19 @@ export const stockLevelsApi = {
       // Fetch all product batches (which include product information)
       const batches = await productBatchesApi.getAll()
       
-      // Helper: robust key for grouping to avoid merging different products
+      // Helper: group strictly by normalized product name to combine duplicates
       const getProductGroupKey = (batch) => {
         const product = batch.product || {}
-        const productId = product.id || batch.productId
-        if (productId !== undefined && productId !== null) return `id:${productId}`
-        const sku = product.sku || batch.sku
-        if (sku) return `sku:${sku}`
-        const name = product.name || batch.productName
+        const nameRaw = product.name || batch.productName
+        const name = typeof nameRaw === 'string' ? nameRaw.trim().toLowerCase() : ''
         if (name) return `name:${name}`
-        // Fallback to batch id to prevent accidental merging
+        // Fallbacks if name is missing
+        const productId = (product.productId ?? product.id ?? batch.productId)
+        if (productId !== undefined && productId !== null) return `id:${productId}`
+        const skuRaw = product.sku || batch.sku
+        const sku = typeof skuRaw === 'string' ? skuRaw.trim().toLowerCase() : ''
+        if (sku) return `sku:${sku}`
+        // Final fallback to avoid accidental merging
         return `batch:${batch.id || Math.random().toString(36).slice(2)}`
       }
 
