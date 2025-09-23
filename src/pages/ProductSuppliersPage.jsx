@@ -598,75 +598,109 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
             
             <form onSubmit={handleSubmit}>
               <div className="space-y-4 mb-6">
-                {/* Product Selection */}
+                {/* Product Display / Selection */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
                     Product *
                   </label>
-                  <select
-                    required
-                    disabled={editingProductSupplier} // Cannot change product when editing
-                    value={formData.productId}
-                    onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      formErrors.productId ? 'border-red-500' : ''
-                    } ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    } ${
-                      editingProductSupplier ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <option value="">Select a product</option>
-                    {products.map((product) => {
-                      const batchNum = productIdToBatchNumber[product.id] || '—'
-                      const sku = product.sku || '—'
-                      return (
-                        <option key={product.id} value={product.id}>
-                          [{batchNum}] - {sku}
-                        </option>
-                      )
-                    })}
-                  </select>
-                  {formErrors.productId && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.productId}</p>
+                  {editingProductSupplier ? (
+                    <input
+                      type="text"
+                      value={
+                        editingProductSupplier.product?.name ||
+                        products.find(p => p.id === parseInt(formData.productId))?.name ||
+                        'N/A'
+                      }
+                      readOnly
+                      disabled
+                      className={`w-full px-3 py-2 border rounded-lg opacity-60 ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  ) : (
+                    <>
+                      <select
+                        required
+                        value={formData.productId}
+                        onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          formErrors.productId ? 'border-red-500' : ''
+                        } ${
+                          isDarkMode
+                            ? 'bg-gray-700 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      >
+                        <option value="">Select a product</option>
+                        {products.map((product) => {
+                          const batchNum = productIdToBatchNumber[product.id] || '—'
+                          const sku = product.sku || '—'
+                          return (
+                            <option key={product.id} value={product.id}>
+                              [{batchNum}] - {sku}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      {formErrors.productId && (
+                        <p className="text-red-500 text-xs mt-1">{formErrors.productId}</p>
+                      )}
+                    </>
                   )}
                 </div>
 
-                {/* Supplier Selection */}
+                {/* Supplier Display / Selection */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
                     Supplier *
                   </label>
-                  <select
-                    required
-                    disabled={editingProductSupplier} // Cannot change supplier when editing
-                    value={formData.supplierId}
-                    onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      formErrors.supplierId ? 'border-red-500' : ''
-                    } ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    } ${
-                      editingProductSupplier ? 'opacity-60 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <option value="">Select a supplier</option>
-                    {suppliers.map((supplier) => (
-                      <option key={supplier.id} value={supplier.id}>
-                        {supplier.name}
-                      </option>
-                    ))}
-                  </select>
-                  {formErrors.supplierId && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.supplierId}</p>
+                  {editingProductSupplier ? (
+                    <input
+                      type="text"
+                      value={
+                        editingProductSupplier.supplier?.name ||
+                        suppliers.find(s => s.id === parseInt(formData.supplierId))?.name ||
+                        'N/A'
+                      }
+                      readOnly
+                      disabled
+                      className={`w-full px-3 py-2 border rounded-lg opacity-60 ${
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  ) : (
+                    <>
+                      <select
+                        required
+                        value={formData.supplierId}
+                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                          formErrors.supplierId ? 'border-red-500' : ''
+                        } ${
+                          isDarkMode
+                            ? 'bg-gray-700 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      >
+                        <option value="">Select a supplier</option>
+                        {suppliers.map((supplier) => (
+                          <option key={supplier.id} value={supplier.id}>
+                            {supplier.name}
+                          </option>
+                        ))}
+                      </select>
+                      {formErrors.supplierId && (
+                        <p className="text-red-500 text-xs mt-1">{formErrors.supplierId}</p>
+                      )}
+                    </>
                   )}
                 </div>
 
