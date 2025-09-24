@@ -20,10 +20,10 @@ const SuppliersPage = ({ isDarkMode }) => {
     contactPerson: '',
     phoneNumber: '',
     email: '',
-    addressStreet: '',
-    addressCity: '',
-    addressState: '',
-    addressZipCode: ''
+    addressStreetBarangay: '',
+    addressCityMunicipality: '',
+    addressProvince: '',
+    addressPostalCode: ''
   })
 
   // Form validation
@@ -67,17 +67,17 @@ const SuppliersPage = ({ isDarkMode }) => {
     }
 
     // Address validations
-    if (formData.addressStreet && formData.addressStreet.length > 255) {
-      errors.addressStreet = 'Street address must not exceed 255 characters'
+    if (formData.addressStreetBarangay && formData.addressStreetBarangay.length > 255) {
+      errors.addressStreetBarangay = 'Street address or Barangay must not exceed 255 characters'
     }
-    if (formData.addressCity && formData.addressCity.length > 100) {
-      errors.addressCity = 'City must not exceed 100 characters'
+    if (formData.addressCityMunicipality && formData.addressCityMunicipality.length > 100) {
+      errors.addressCityMunicipality = 'City or Municipality must not exceed 100 characters'
     }
-    if (formData.addressState && formData.addressState.length > 100) {
-      errors.addressState = 'State must not exceed 100 characters'
+    if (formData.addressProvince && formData.addressProvince.length > 100) {
+      errors.addressProvince = 'Province must not exceed 100 characters'
     }
-    if (formData.addressZipCode && formData.addressZipCode.length > 20) {
-      errors.addressZipCode = 'Zip code must not exceed 20 characters'
+    if (formData.addressPostalCode && formData.addressPostalCode.length > 20) {
+      errors.addressPostalCode = 'Postal code must not exceed 20 characters'
     }
 
     setFormErrors(errors)
@@ -127,9 +127,9 @@ const SuppliersPage = ({ isDarkMode }) => {
       
       if (editingSupplier) {
         // Update existing supplier
-        const updatedSupplier = await suppliersApi.update(editingSupplier.id, formData)
+        const updatedSupplier = await suppliersApi.update(editingSupplier.supplierId, formData)
         setSuppliers(suppliers.map(supplier => 
-          supplier.id === editingSupplier.id ? updatedSupplier : supplier
+          supplier.supplierId === editingSupplier.supplierId ? updatedSupplier : supplier
         ))
         setSuccess('Supplier updated successfully!')
         
@@ -141,10 +141,10 @@ const SuppliersPage = ({ isDarkMode }) => {
           contactPerson: '',
           phoneNumber: '',
           email: '',
-          addressStreet: '',
-          addressCity: '',
-          addressState: '',
-          addressZipCode: ''
+          addressStreetBarangay: '',
+          addressCityMunicipality: '',
+          addressProvince: '',
+          addressPostalCode: ''
         })
         
         // Auto-hide success message after 3 seconds
@@ -163,10 +163,10 @@ const SuppliersPage = ({ isDarkMode }) => {
           contactPerson: '',
           phoneNumber: '',
           email: '',
-          addressStreet: '',
-          addressCity: '',
-          addressState: '',
-          addressZipCode: ''
+          addressStreetBarangay: '',
+          addressCityMunicipality: '',
+          addressProvince: '',
+          addressPostalCode: ''
         })
         
         // Auto-hide success message after 3 seconds
@@ -185,10 +185,10 @@ const SuppliersPage = ({ isDarkMode }) => {
         contactPerson: '',
         phoneNumber: '',
         email: '',
-        addressStreet: '',
-        addressCity: '',
-        addressState: '',
-        addressZipCode: ''
+        addressStreetBarangay: '',
+        addressCityMunicipality: '',
+        addressProvince: '',
+        addressPostalCode: ''
       })
     } finally {
       setSubmitting(false)
@@ -202,10 +202,10 @@ const SuppliersPage = ({ isDarkMode }) => {
       contactPerson: supplier.contactPerson || '',
       phoneNumber: supplier.phoneNumber || '',
       email: supplier.email || '',
-      addressStreet: supplier.addressStreet || '',
-      addressCity: supplier.addressCity || '',
-      addressState: supplier.addressState || '',
-      addressZipCode: supplier.addressZipCode || ''
+      addressStreetBarangay: supplier.addressStreetBarangay || '',
+      addressCityMunicipality: supplier.addressCityMunicipality || '',
+      addressProvince: supplier.addressProvince || '',
+      addressPostalCode: supplier.addressPostalCode || ''
     })
     setFormErrors({})
     setShowAddModal(true)
@@ -213,10 +213,10 @@ const SuppliersPage = ({ isDarkMode }) => {
 
   const formatAddress = (supplier) => {
     const addressParts = [
-      supplier.addressStreet,
-      supplier.addressCity,
-      supplier.addressState,
-      supplier.addressZipCode
+      supplier.addressStreetBarangay,
+      supplier.addressCityMunicipality,
+      supplier.addressProvince,
+      supplier.addressPostalCode
     ].filter(part => part && part.trim())
     
     return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided'
@@ -225,7 +225,7 @@ const SuppliersPage = ({ isDarkMode }) => {
   const filteredSuppliers = suppliers.filter((s) => {
     const q = (searchTerm || '').toLowerCase()
     if (!q) return true
-    const address = [s.addressStreet, s.addressCity, s.addressState, s.addressZipCode]
+    const address = [s.addressStreetBarangay, s.addressCityMunicipality, s.addressProvince, s.addressPostalCode]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()
@@ -290,10 +290,10 @@ const SuppliersPage = ({ isDarkMode }) => {
                 contactPerson: '',
                 phoneNumber: '',
                 email: '',
-                addressStreet: '',
-                addressCity: '',
-                addressState: '',
-                addressZipCode: ''
+                addressStreetBarangay: '',
+                addressCityMunicipality: '',
+                addressProvince: '',
+                addressPostalCode: ''
               })
               setFormErrors({})
               setShowAddModal(true)
@@ -372,7 +372,7 @@ const SuppliersPage = ({ isDarkMode }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSuppliers.map((supplier) => (
-            <div key={supplier.id} className={`rounded-lg border p-6 ${
+            <div key={supplier.supplierId} className={`rounded-lg border p-6 ${
               isDarkMode 
                 ? 'bg-gray-800 border-gray-700' 
                 : 'bg-white border-gray-200'
@@ -548,24 +548,24 @@ const SuppliersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Street Address
+                    Street/Barangay
                   </label>
                   <input
                     type="text"
-                    value={formData.addressStreet}
-                    onChange={(e) => setFormData({ ...formData, addressStreet: e.target.value })}
+                    value={formData.addressStreetBarangay}
+                    onChange={(e) => setFormData({ ...formData, addressStreetBarangay: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      formErrors.addressStreet ? 'border-red-500' : ''
+                      formErrors.addressStreetBarangay ? 'border-red-500' : ''
                     } ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter street address"
+                    placeholder="Enter street/barangay"
                     maxLength={255}
                   />
-                  {formErrors.addressStreet && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.addressStreet}</p>
+                  {formErrors.addressStreetBarangay && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.addressStreetBarangay}</p>
                   )}
                 </div>
 
@@ -574,24 +574,24 @@ const SuppliersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    City
+                    City/Municipality
                   </label>
                   <input
                     type="text"
-                    value={formData.addressCity}
-                    onChange={(e) => setFormData({ ...formData, addressCity: e.target.value })}
+                    value={formData.addressCityMunicipality}
+                    onChange={(e) => setFormData({ ...formData, addressCityMunicipality: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      formErrors.addressCity ? 'border-red-500' : ''
+                      formErrors.addressCityMunicipality ? 'border-red-500' : ''
                     } ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter city"
+                    placeholder="Enter city/municipality"
                     maxLength={100}
                   />
-                  {formErrors.addressCity && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.addressCity}</p>
+                  {formErrors.addressCityMunicipality && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.addressCityMunicipality}</p>
                   )}
                 </div>
 
@@ -600,24 +600,24 @@ const SuppliersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    State
+                    Province
                   </label>
                   <input
                     type="text"
-                    value={formData.addressState}
-                    onChange={(e) => setFormData({ ...formData, addressState: e.target.value })}
+                    value={formData.addressProvince}
+                    onChange={(e) => setFormData({ ...formData, addressProvince: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      formErrors.addressState ? 'border-red-500' : ''
+                      formErrors.addressProvince ? 'border-red-500' : ''
                     } ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter state"
+                    placeholder="Enter province"
                     maxLength={100}
                   />
-                  {formErrors.addressState && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.addressState}</p>
+                  {formErrors.addressProvince && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.addressProvince}</p>
                   )}
                 </div>
 
@@ -626,24 +626,24 @@ const SuppliersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Zip Code
+                    Postal Code
                   </label>
                   <input
                     type="text"
-                    value={formData.addressZipCode}
-                    onChange={(e) => setFormData({ ...formData, addressZipCode: e.target.value })}
+                    value={formData.addressPostalCode}
+                    onChange={(e) => setFormData({ ...formData, addressPostalCode: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                      formErrors.addressZipCode ? 'border-red-500' : ''
+                      formErrors.addressPostalCode ? 'border-red-500' : ''
                     } ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter zip code"
+                    placeholder="Enter postal code"
                     maxLength={20}
                   />
-                  {formErrors.addressZipCode && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.addressZipCode}</p>
+                  {formErrors.addressPostalCode && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.addressPostalCode}</p>
                   )}
                 </div>
               </div>
@@ -659,10 +659,10 @@ const SuppliersPage = ({ isDarkMode }) => {
                       contactPerson: '',
                       phoneNumber: '',
                       email: '',
-                      addressStreet: '',
-                      addressCity: '',
-                      addressState: '',
-                      addressZipCode: ''
+                      addressStreetBarangay: '',
+                      addressCityMunicipality: '',
+                      addressProvince: '',
+                      addressPostalCode: ''
                     })
                     setFormErrors({})
                   }}
