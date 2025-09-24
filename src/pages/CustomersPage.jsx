@@ -15,10 +15,10 @@ const CustomersPage = ({ isDarkMode }) => {
     name: '',
     email: '',
     phoneNumber: '',
-    addressStreet: '',
-    addressCity: '',
-    addressState: '',
-    addressZipCode: ''
+    addressStreetBarangay: '',
+    addressCityMunicipality: '',
+    addressProvince: '',
+    addressPostalCode: ''
   })
 
   const loadCustomers = async () => {
@@ -47,10 +47,10 @@ const CustomersPage = ({ isDarkMode }) => {
         name: formData.name,
         phoneNumber: formData.phoneNumber || '',
         email: formData.email || '',
-        addressStreet: formData.addressStreet || '',
-        addressCity: formData.addressCity || '',
-        addressState: formData.addressState || '',
-        addressZipCode: formData.addressZipCode || ''
+        addressStreetBarangay: formData.addressStreetBarangay || '',
+        addressCityMunicipality: formData.addressCityMunicipality || '',
+        addressProvince: formData.addressProvince || '',
+        addressPostalCode: formData.addressPostalCode || ''
       }
       if (editingCustomer) {
         await customersApi.update(editingCustomer.customerId, payload)
@@ -59,7 +59,7 @@ const CustomersPage = ({ isDarkMode }) => {
       }
       setShowAddModal(false)
       setEditingCustomer(null)
-      setFormData({ name: '', email: '', phoneNumber: '', addressStreet: '', addressCity: '', addressState: '', addressZipCode: '' })
+      setFormData({ name: '', email: '', phoneNumber: '', addressStreetBarangay: '', addressCityMunicipality: '', addressProvince: '', addressPostalCode: '' })
       loadCustomers()
     } catch (e) {
       setError({ message: e.message })
@@ -72,10 +72,10 @@ const CustomersPage = ({ isDarkMode }) => {
       name: customer.name || '',
       email: customer.email || '',
       phoneNumber: customer.phoneNumber || '',
-      addressStreet: customer.addressStreet || '',
-      addressCity: customer.addressCity || '',
-      addressState: customer.addressState || '',
-      addressZipCode: customer.addressZipCode || ''
+      addressStreetBarangay: customer.addressStreetBarangay || '',
+      addressCityMunicipality: customer.addressCityMunicipality || '',
+      addressProvince: customer.addressProvince || '',
+      addressPostalCode: customer.addressPostalCode || ''
     })
     setShowAddModal(true)
   }
@@ -221,10 +221,10 @@ const CustomersPage = ({ isDarkMode }) => {
 
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
               <p className="mb-1">📍 {[
-                customer.addressStreet,
-                customer.addressCity,
-                customer.addressState,
-                customer.addressZipCode
+                customer.addressStreetBarangay,
+                customer.addressCityMunicipality,
+                customer.addressProvince,
+                customer.addressPostalCode
               ].filter(Boolean).join(', ') || '—'}</p>
             </div>
 
@@ -345,18 +345,18 @@ const CustomersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Street Address
+                    Street/Barangay
                   </label>
                   <input
                     type="text"
-                    value={formData.addressStreet}
-                    onChange={(e) => setFormData({ ...formData, addressStreet: e.target.value })}
+                    value={formData.addressStreetBarangay}
+                    onChange={(e) => setFormData({ ...formData, addressStreetBarangay: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                   }`}
-                  placeholder="Enter street address"
+                  placeholder="Enter street/barangay"
                   />
                 </div>
                 
@@ -364,18 +364,18 @@ const CustomersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    City
+                    City/Municipality
                   </label>
                   <input
                     type="text"
-                    value={formData.addressCity}
-                    onChange={(e) => setFormData({ ...formData, addressCity: e.target.value })}
+                    value={formData.addressCityMunicipality}
+                    onChange={(e) => setFormData({ ...formData, addressCityMunicipality: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter city"
+                    placeholder="Enter city/municipality"
                   />
                 </div>
                 
@@ -383,18 +383,18 @@ const CustomersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    State/Province
+                    Province
                   </label>
                   <input
                     type="text"
-                    value={formData.addressState}
-                    onChange={(e) => setFormData({ ...formData, addressState: e.target.value })}
+                    value={formData.addressProvince}
+                    onChange={(e) => setFormData({ ...formData, addressProvince: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline:none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter state/province"
+                    placeholder="Enter province"
                   />
                 </div>
                 
@@ -402,18 +402,18 @@ const CustomersPage = ({ isDarkMode }) => {
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
-                    Zip Code
+                    Postal Code
                   </label>
                   <input
                     type="text"
-                    value={formData.addressZipCode}
-                    onChange={(e) => setFormData({ ...formData, addressZipCode: e.target.value })}
+                    value={formData.addressPostalCode}
+                    onChange={(e) => setFormData({ ...formData, addressPostalCode: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
                       isDarkMode
                         ? 'bg-gray-700 border-gray-600 text-white'
                         : 'bg-white border-gray-300 text-gray-900'
                     }`}
-                    placeholder="Enter zip/postal code"
+                    placeholder="Enter postal code"
                   />
                 </div>
               </div>
@@ -424,7 +424,7 @@ const CustomersPage = ({ isDarkMode }) => {
                   onClick={() => {
                     setShowAddModal(false)
                     setEditingCustomer(null)
-                    setFormData({ name: '', email: '', phoneNumber: '', addressStreet: '', addressCity: '', addressState: '', addressZipCode: '' })
+                    setFormData({ name: '', email: '', phoneNumber: '', addressStreetBarangay: '', addressCityMunicipality: '', addressProvince: '', addressPostalCode: '' })
                   }}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                     isDarkMode
