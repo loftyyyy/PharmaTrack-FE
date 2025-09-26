@@ -18,7 +18,8 @@ const CustomersPage = ({ isDarkMode }) => {
     addressStreetBarangay: '',
     addressCityMunicipality: '',
     addressProvince: '',
-    addressPostalCode: ''
+    addressPostalCode: '',
+    isActive: true
   })
 
   const loadCustomers = async () => {
@@ -50,7 +51,8 @@ const CustomersPage = ({ isDarkMode }) => {
         addressStreetBarangay: formData.addressStreetBarangay || '',
         addressCityMunicipality: formData.addressCityMunicipality || '',
         addressProvince: formData.addressProvince || '',
-        addressPostalCode: formData.addressPostalCode || ''
+        addressPostalCode: formData.addressPostalCode || '',
+        isActive: typeof formData.isActive === 'boolean' ? formData.isActive : true
       }
       if (editingCustomer) {
         await customersApi.update(editingCustomer.customerId, payload)
@@ -59,7 +61,7 @@ const CustomersPage = ({ isDarkMode }) => {
       }
       setShowAddModal(false)
       setEditingCustomer(null)
-      setFormData({ name: '', email: '', phoneNumber: '', addressStreetBarangay: '', addressCityMunicipality: '', addressProvince: '', addressPostalCode: '' })
+      setFormData({ name: '', email: '', phoneNumber: '', addressStreetBarangay: '', addressCityMunicipality: '', addressProvince: '', addressPostalCode: '', isActive: true })
       loadCustomers()
     } catch (e) {
       setError({ message: e.message })
@@ -75,15 +77,28 @@ const CustomersPage = ({ isDarkMode }) => {
       addressStreetBarangay: customer.addressStreetBarangay || '',
       addressCityMunicipality: customer.addressCityMunicipality || '',
       addressProvince: customer.addressProvince || '',
-      addressPostalCode: customer.addressPostalCode || ''
+      addressPostalCode: customer.addressPostalCode || '',
+      isActive: typeof customer.isActive === 'boolean' ? customer.isActive : true
     })
     setShowAddModal(true)
   }
 
-  const handleDelete = async (customerId) => {
-    if (!window.confirm('Are you sure you want to delete this customer?')) return
+  const handleToggleActive = async (customer) => {
+    const nextActive = !customer.isActive
+    if (!window.confirm(`Are you sure you want to ${nextActive ? 'activate' : 'deactivate'} this customer?`)) return
     try {
-      await customersApi.remove(customerId)
+      // Backend update requires full DTO (name is required), so send all fields
+      const payload = {
+        name: customer.name || '',
+        phoneNumber: customer.phoneNumber || '',
+        email: customer.email || '',
+        addressStreetBarangay: customer.addressStreetBarangay || '',
+        addressCityMunicipality: customer.addressCityMunicipality || '',
+        addressProvince: customer.addressProvince || '',
+        addressPostalCode: customer.addressPostalCode || '',
+        isActive: nextActive,
+      }
+      await customersApi.update(customer.customerId, payload)
       loadCustomers()
     } catch (e) {
       setError({ message: e.message })
@@ -214,9 +229,14 @@ const CustomersPage = ({ isDarkMode }) => {
                   {customer.phoneNumber}
                 </p>
               </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${customer.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}`}>
+                {customer.isActive ? 'Active' : 'Inactive'}
+              </span>
               <span className={`px-2 py-1 rounded-full text-xs font-medium bg-slate-200 text-slate-700`}>
                 Created {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : ''}
               </span>
+            </div>
             </div>
 
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
@@ -251,10 +271,10 @@ const CustomersPage = ({ isDarkMode }) => {
                 Edit
               </button>
               <button
-                onClick={() => handleDelete(customer.customerId)}
-                className="py-2 px-3 rounded text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
+                onClick={() => handleToggleActive(customer)}
+                className={`py-2 px-3 rounded text-sm font-medium transition-colors ${customer.isActive ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
               >
-                Delete
+                {customer.isActive ? 'Deactivate' : 'Activate'}
               </button>
             </div>
           </div>
@@ -418,13 +438,26 @@ const CustomersPage = ({ isDarkMode }) => {
                 </div>
               </div>
               
+            <div className="mt-4">
+              <label className={`inline-flex items-center gap-2 text-sm font-medium ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={!!formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                />
+                Active
+              </label>
+            </div>
+
               <div className="flex space-x-3 mt-6">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false)
                     setEditingCustomer(null)
-                    setFormData({ name: '', email: '', phoneNumber: '', addressStreetBarangay: '', addressCityMunicipality: '', addressProvince: '', addressPostalCode: '' })
+                  setFormData({ name: '', email: '', phoneNumber: '', addressStreetBarangay: '', addressCityMunicipality: '', addressProvince: '', addressPostalCode: '', isActive: true })
                   }}
                   className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                     isDarkMode
