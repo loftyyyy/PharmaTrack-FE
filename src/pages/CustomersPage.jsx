@@ -91,18 +91,18 @@ const CustomersPage = ({ isDarkMode }) => {
         // Use dedicated deactivate endpoint
         await customersApi.deactivate(customer.customerId)
       } else {
-        // Activation uses full update with isActive: true
-        const payload = {
-          name: customer.name || '',
-          phoneNumber: customer.phoneNumber || '',
-          email: customer.email || '',
-          addressStreetBarangay: customer.addressStreetBarangay || '',
-          addressCityMunicipality: customer.addressCityMunicipality || '',
-          addressProvince: customer.addressProvince || '',
-          addressPostalCode: customer.addressPostalCode || '',
-          isActive: true,
-        }
-        await customersApi.update(customer.customerId, payload)
+        // // Activation uses full update with isActive: true
+        // const payload = {
+        //   name: customer.name || '',
+        //   phoneNumber: customer.phoneNumber || '',
+        //   email: customer.email || '',
+        //   addressStreetBarangay: customer.addressStreetBarangay || '',
+        //   addressCityMunicipality: customer.addressCityMunicipality || '',
+        //   addressProvince: customer.addressProvince || '',
+        //   addressPostalCode: customer.addressPostalCode || '',
+        //   isActive: true,
+        // }
+        await customersApi.activate(customer.customerId)
       }
       loadCustomers()
     } catch (e) {
@@ -235,7 +235,7 @@ const CustomersPage = ({ isDarkMode }) => {
                 </p>
               </div>
             <div className="flex flex-col items-end gap-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${customer.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}`}>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${customer.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                 {customer.isActive ? 'Active' : 'Inactive'}
               </span>
               <span className={`px-2 py-1 rounded-full text-xs font-medium bg-slate-200 text-slate-700`}>

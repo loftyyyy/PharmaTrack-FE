@@ -35,6 +35,7 @@ const customersApi = {
   update: (id, payload) => request(`/api/v1/customers/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id) => request(`/api/v1/customers/${id}`, { method: 'DELETE' }),
   deactivate: (id) => request(`/api/v1/customers/deactivate/${id}`, { method: 'PUT' }),
+  activate: (id) => request(`/api/v1/customers/activate/${id}`, { method: 'PUT' }),
 }
 
 export default customersApi
