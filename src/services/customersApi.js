@@ -1,5 +1,7 @@
 import { API_BASE_URL } from '../utils/config'
 
+const BASE_URL = API_BASE_URL
+
 function getAuthHeaders() {
   const accessToken = localStorage.getItem('pharma_access_token')
   return {
@@ -9,7 +11,7 @@ function getAuthHeaders() {
 }
 
 async function request(path, options = {}) {
-  const url = `${API_BASE_URL}${path}`
+  const url = `${BASE_URL}${path}`
   const headers = { ...getAuthHeaders(), ...(options.headers || {}) }
   const response = await fetch(url, { ...options, headers })
 
@@ -29,9 +31,10 @@ async function request(path, options = {}) {
 const customersApi = {
   getAll: () => request('/api/v1/customers', { method: 'GET' }),
   getById: (id) => request(`/api/v1/customers/${id}`, { method: 'GET' }),
-  create: (payload) => request('/api/v1/customers/create', { method: 'POST', body: JSON.stringify(payload) }),
+  create: (payload) => request('/api/v1/customers', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id, payload) => request(`/api/v1/customers/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id) => request(`/api/v1/customers/${id}`, { method: 'DELETE' }),
+  deactivate: (id) => request(`/api/v1/customers/deactivate/${id}`, { method: 'PUT' }),
 }
 
 export default customersApi

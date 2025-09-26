@@ -87,18 +87,23 @@ const CustomersPage = ({ isDarkMode }) => {
     const nextActive = !customer.isActive
     if (!window.confirm(`Are you sure you want to ${nextActive ? 'activate' : 'deactivate'} this customer?`)) return
     try {
-      // Backend update requires full DTO (name is required), so send all fields
-      const payload = {
-        name: customer.name || '',
-        phoneNumber: customer.phoneNumber || '',
-        email: customer.email || '',
-        addressStreetBarangay: customer.addressStreetBarangay || '',
-        addressCityMunicipality: customer.addressCityMunicipality || '',
-        addressProvince: customer.addressProvince || '',
-        addressPostalCode: customer.addressPostalCode || '',
-        isActive: nextActive,
+      if (!nextActive) {
+        // Use dedicated deactivate endpoint
+        await customersApi.deactivate(customer.customerId)
+      } else {
+        // Activation uses full update with isActive: true
+        const payload = {
+          name: customer.name || '',
+          phoneNumber: customer.phoneNumber || '',
+          email: customer.email || '',
+          addressStreetBarangay: customer.addressStreetBarangay || '',
+          addressCityMunicipality: customer.addressCityMunicipality || '',
+          addressProvince: customer.addressProvince || '',
+          addressPostalCode: customer.addressPostalCode || '',
+          isActive: true,
+        }
+        await customersApi.update(customer.customerId, payload)
       }
-      await customersApi.update(customer.customerId, payload)
       loadCustomers()
     } catch (e) {
       setError({ message: e.message })
