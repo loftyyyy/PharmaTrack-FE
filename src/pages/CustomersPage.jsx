@@ -91,17 +91,6 @@ const CustomersPage = ({ isDarkMode }) => {
         // Use dedicated deactivate endpoint
         await customersApi.deactivate(customer.customerId)
       } else {
-        // // Activation uses full update with isActive: true
-        // const payload = {
-        //   name: customer.name || '',
-        //   phoneNumber: customer.phoneNumber || '',
-        //   email: customer.email || '',
-        //   addressStreetBarangay: customer.addressStreetBarangay || '',
-        //   addressCityMunicipality: customer.addressCityMunicipality || '',
-        //   addressProvince: customer.addressProvince || '',
-        //   addressPostalCode: customer.addressPostalCode || '',
-        //   isActive: true,
-        // }
         await customersApi.activate(customer.customerId)
       }
       loadCustomers()
