@@ -230,7 +230,7 @@ const MyProfile = ({ isDarkMode }) => {
             <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center ${
               isDarkMode 
                 ? 'bg-gray-800' 
-                : 'bg-pharma-dark'
+                : 'bg-gray-800'
             }`}>
               <span className={`text-2xl font-bold ${
                 isDarkMode 

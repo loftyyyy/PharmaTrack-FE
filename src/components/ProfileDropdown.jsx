@@ -11,7 +11,7 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
         <button className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2 ${
           isDarkMode 
             ? 'bg-gray-800 border-gray-600' 
-            : 'bg-pharma-dark border-pharma-dark'
+            : 'bg-gray-800 border-gray-600'
         }`}>
           <span className={`text-sm font-bold ${
             isDarkMode 
@@ -152,17 +152,13 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 border-2 ${
             isDarkMode 
               ? 'bg-gray-800 border-gray-600 hover:border-gray-500' 
-              : 'bg-pharma-dark border-pharma-dark hover:border-pharma-teal'
+              : 'bg-gray-800 border-gray-600 hover:border-gray-500'
           }`}>
           <span className={`text-sm font-bold ${
             isDarkMode 
               ? 'text-white drop-shadow-sm' 
               : 'text-white drop-shadow-lg'
-          }`} style={{
-            textShadow: isDarkMode 
-              ? '0 1px 2px rgba(0,0,0,0.3)' 
-              : '0 2px 4px rgba(0,0,0,0.5)'
-          }}>{displayUser.initials}</span>
+          }`}>{displayUser.initials}</span>
         </button>
         
         {/* Hover Tooltip - only shows when dropdown is closed */}
@@ -177,7 +173,7 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   isDarkMode 
                     ? 'bg-gray-800' 
-                    : 'bg-pharma-dark'
+                    : 'bg-gray-800'
                 }`}>
                   <span className={`text-xs font-bold ${
                     isDarkMode 
@@ -218,7 +214,7 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                 isDarkMode 
                   ? 'bg-gray-800' 
-                  : 'bg-pharma-dark'
+                  : 'bg-gray-800'
               }`}>
                 <span className={`font-bold ${
                   isDarkMode 
