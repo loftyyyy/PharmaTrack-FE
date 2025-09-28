@@ -10,8 +10,8 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
       <div className="relative">
         <button className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2 ${
           isDarkMode 
-            ? 'bg-gradient-to-br from-pharma-medium to-pharma-teal border-pharma-light/20' 
-            : 'bg-gradient-to-br from-pharma-teal to-pharma-dark border-pharma-teal/30'
+            ? 'bg-gray-800 border-gray-600' 
+            : 'bg-pharma-dark border-pharma-dark'
         }`}>
           <span className={`text-sm font-bold ${
             isDarkMode 
@@ -176,8 +176,8 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
               <div className="flex items-center space-x-3 mb-2">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   isDarkMode 
-                    ? 'bg-gradient-to-br from-pharma-teal to-pharma-medium' 
-                    : 'bg-gradient-to-br from-pharma-teal to-pharma-dark'
+                    ? 'bg-gray-800' 
+                    : 'bg-pharma-dark'
                 }`}>
                   <span className={`text-xs font-bold ${
                     isDarkMode 
@@ -217,8 +217,8 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
             <div className="flex items-center space-x-3">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                 isDarkMode 
-                  ? 'bg-gradient-to-br from-pharma-teal to-pharma-medium' 
-                  : 'bg-gradient-to-br from-pharma-teal to-pharma-dark'
+                  ? 'bg-gray-800' 
+                  : 'bg-pharma-dark'
               }`}>
                 <span className={`font-bold ${
                   isDarkMode 

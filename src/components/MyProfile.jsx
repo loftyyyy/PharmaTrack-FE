@@ -229,8 +229,8 @@ const MyProfile = ({ isDarkMode }) => {
             {/* Profile Avatar */}
             <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center ${
               isDarkMode 
-                ? 'bg-gradient-to-br from-pharma-teal to-pharma-medium' 
-                : 'bg-gradient-to-br from-pharma-teal to-pharma-dark'
+                ? 'bg-gray-800' 
+                : 'bg-pharma-dark'
             }`}>
               <span className={`text-2xl font-bold ${
                 isDarkMode 
