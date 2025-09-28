@@ -227,8 +227,16 @@ const MyProfile = ({ isDarkMode }) => {
         }`}>
           <div className="text-center">
             {/* Profile Avatar */}
-            <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center bg-gradient-to-br from-pharma-teal to-pharma-medium`}>
-              <span className="text-white text-2xl font-bold">
+            <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center ${
+              isDarkMode 
+                ? 'bg-gradient-to-br from-pharma-teal to-pharma-medium' 
+                : 'bg-gradient-to-br from-pharma-teal to-pharma-dark'
+            }`}>
+              <span className={`text-2xl font-bold ${
+                isDarkMode 
+                  ? 'text-white drop-shadow-sm' 
+                  : 'text-white drop-shadow-lg'
+              }`}>
                 {user.name ? 
                   user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 
                   user.username?.substring(0, 2).toUpperCase() || 'U'

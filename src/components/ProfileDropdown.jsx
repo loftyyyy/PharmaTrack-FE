@@ -11,9 +11,13 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
         <button className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 border-2 ${
           isDarkMode 
             ? 'bg-gradient-to-br from-pharma-medium to-pharma-teal border-pharma-light/20' 
-            : 'bg-gradient-to-br from-pharma-teal to-pharma-medium border-pharma-teal/30'
+            : 'bg-gradient-to-br from-pharma-teal to-pharma-dark border-pharma-teal/30'
         }`}>
-          <span className="text-white text-sm font-bold">?</span>
+          <span className={`text-sm font-bold ${
+            isDarkMode 
+              ? 'text-white drop-shadow-sm' 
+              : 'text-white drop-shadow-lg'
+          }`}>?</span>
         </button>
       </div>
     )
@@ -147,10 +151,18 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
           onClick={() => setShowProfileDropdown(!showProfileDropdown)}
           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-105 border-2 ${
             isDarkMode 
-              ? 'bg-gradient-to-br from-pharma-medium to-pharma-teal border-pharma-light/20 hover:border-pharma-light/40' 
-              : 'bg-gradient-to-br from-pharma-teal to-pharma-medium border-pharma-teal/30 hover:border-pharma-teal/50'
+              ? 'bg-gray-800 border-gray-600 hover:border-gray-500' 
+              : 'bg-pharma-dark border-pharma-dark hover:border-pharma-teal'
           }`}>
-          <span className="text-white text-sm font-bold drop-shadow-sm">{displayUser.initials}</span>
+          <span className={`text-sm font-bold ${
+            isDarkMode 
+              ? 'text-white drop-shadow-sm' 
+              : 'text-white drop-shadow-lg'
+          }`} style={{
+            textShadow: isDarkMode 
+              ? '0 1px 2px rgba(0,0,0,0.3)' 
+              : '0 2px 4px rgba(0,0,0,0.5)'
+          }}>{displayUser.initials}</span>
         </button>
         
         {/* Hover Tooltip - only shows when dropdown is closed */}
@@ -162,8 +174,16 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
           }`}>
             <div className="p-3">
               <div className="flex items-center space-x-3 mb-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-pharma-teal to-pharma-medium`}>
-                  <span className="text-white text-xs font-bold">{displayUser.initials}</span>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-br from-pharma-teal to-pharma-medium' 
+                    : 'bg-gradient-to-br from-pharma-teal to-pharma-dark'
+                }`}>
+                  <span className={`text-xs font-bold ${
+                    isDarkMode 
+                      ? 'text-white drop-shadow-sm' 
+                      : 'text-white drop-shadow-lg'
+                  }`}>{displayUser.initials}</span>
                 </div>
                 <div>
                                               <p className={`text-sm font-medium ${
@@ -195,8 +215,16 @@ const ProfileDropdown = ({ isDarkMode, showProfileDropdown, setShowProfileDropdo
           {/* User Info Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-600">
             <div className="flex items-center space-x-3">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-pharma-teal to-pharma-medium`}>
-                <span className="text-white font-bold">{displayUser.initials}</span>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                isDarkMode 
+                  ? 'bg-gradient-to-br from-pharma-teal to-pharma-medium' 
+                  : 'bg-gradient-to-br from-pharma-teal to-pharma-dark'
+              }`}>
+                <span className={`font-bold ${
+                  isDarkMode 
+                    ? 'text-white drop-shadow-sm' 
+                    : 'text-white drop-shadow-lg'
+                }`}>{displayUser.initials}</span>
               </div>
               <div>
                                   <p className={`font-semibold ${
