@@ -48,6 +48,7 @@ async function request(path, options = {}) {
 const rolesApi = {
   getAll: () => request('/api/v1/roles', { method: 'GET' }),
   getById: (id) => request(`/api/v1/roles/${id}`, { method: 'GET' }),
+  getUserCount: (roleId) => request(`/api/v1/roles/${roleId}/users/count`, { method: 'GET' }),
 }
 
 export default rolesApi

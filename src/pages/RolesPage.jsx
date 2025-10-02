@@ -6,6 +6,7 @@ import ErrorDisplay from '../components/ErrorDisplay'
 const RolesPage = ({ isDarkMode }) => {
   const { isAuthenticated } = useAuth()
   const [roles, setRoles] = useState([])
+  const [roleUserCounts, setRoleUserCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
@@ -20,11 +21,26 @@ const RolesPage = ({ isDarkMode }) => {
       setLoadingError(null)
       const data = await rolesApi.getAll()
       console.log('📥 Roles data:', data)
-      setRoles(Array.isArray(data) ? data : [])
+      const rolesArray = Array.isArray(data) ? data : []
+      setRoles(rolesArray)
+      
+      // Fetch user counts for each role
+      const userCounts = {}
+      for (const role of rolesArray) {
+        try {
+          const count = await rolesApi.getUserCount(role.id)
+          userCounts[role.id] = count
+        } catch (countError) {
+          console.warn(`Failed to fetch user count for role ${role.id}:`, countError)
+          userCounts[role.id] = 0
+        }
+      }
+      setRoleUserCounts(userCounts)
     } catch (error) {
       console.error('Failed to fetch roles:', error)
       setLoadingError(error)
       setRoles([])
+      setRoleUserCounts({})
       
       // Check if it's a permission error
       if (error.message.includes('403') || error.message.includes('Access denied')) {
@@ -129,7 +145,7 @@ const RolesPage = ({ isDarkMode }) => {
         <div className="space-y-6">
           {/* Header Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {roles.map((role, index) => (
+            {roles.map((role) => (
               <div
                 key={role.id}
                 className={`relative overflow-hidden rounded-xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-xl ${
@@ -150,12 +166,17 @@ const RolesPage = ({ isDarkMode }) => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-bold">{role.name}</h3>
-                    <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold">#{role.id}</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold">{roleUserCounts[role.id] || 0}</span>
+                      </div>
+                      <div className="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold">#{role.id}</span>
+                      </div>
                     </div>
                   </div>
                   <p className="text-sm opacity-90">
-                    {role.name?.toUpperCase() === 'ADMIN' 
+{roleUserCounts[role.id] || 0} {roleUserCounts[role.id] === 1 ? 'user' : 'users'} • {role.name?.toUpperCase() === 'ADMIN' 
                       ? 'Full system access and control'
                       : role.name?.toUpperCase() === 'STAFF'
                       ? 'Operational access and management'
@@ -212,14 +233,14 @@ const RolesPage = ({ isDarkMode }) => {
                     <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? 'text-gray-300' : 'text-gray-500'
                     }`}>
-                      Status
+                      Users
                     </th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${
                   isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
                 }`}>
-                  {roles.map((role, index) => (
+                  {roles.map((role) => (
                     <tr key={role.id} className={`transition-colors duration-200 hover:${
                       isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
                     }`}>
@@ -256,17 +277,24 @@ const RolesPage = ({ isDarkMode }) => {
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          role.name?.toUpperCase() === 'ADMIN' 
-                            ? 'bg-red-100 text-red-800'
-                            : role.name?.toUpperCase() === 'STAFF'
-                            ? 'bg-blue-100 text-blue-800'
-                            : role.name?.toUpperCase() === 'MANAGER'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          Active
-                        </span>
+                        <div className="flex items-center">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                            role.name?.toUpperCase() === 'ADMIN' 
+                              ? 'bg-red-100 text-red-800'
+                              : role.name?.toUpperCase() === 'STAFF'
+                              ? 'bg-blue-100 text-blue-800'
+                              : role.name?.toUpperCase() === 'MANAGER'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {roleUserCounts[role.id] || 0}
+                          </div>
+                          <span className={`ml-2 text-sm ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-500'
+                          }`}>
+                            {roleUserCounts[role.id] === 1 ? 'user' : 'users'}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
