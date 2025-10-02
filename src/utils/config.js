@@ -1,9 +1,9 @@
 // Configuration for Vite environment
 // Vite uses import.meta.env for environment variables
 
-// API Base URL - in dev use relative path so Vite proxy handles CORS; in prod use VITE_API_URL or fallback
+// API Base URL - use absolute URL to bypass proxy issues
 export const API_BASE_URL = import.meta.env.DEV
-  ? ''
+  ? 'http://localhost:8080'
   : (import.meta.env.VITE_API_URL || 'http://localhost:8080')
 
 // Other configuration constants

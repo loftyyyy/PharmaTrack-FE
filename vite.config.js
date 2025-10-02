@@ -7,17 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       // Proxy API requests to Spring Boot backend
-      '/auth': {
+      '^/api/.*': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       },
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/v1': {
+      '^/auth/.*': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
