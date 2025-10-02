@@ -6,12 +6,19 @@ import ErrorDisplay from '../components/ErrorDisplay'
 const UsersPage = ({ isDarkMode }) => {
   const { isAuthenticated, user: currentUser } = useAuth()
   const [users, setUsers] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [loadingError, setLoadingError] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [showUserModal, setShowUserModal] = useState(false)
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedRole, setSelectedRole] = useState('')
+  const [sortBy, setSortBy] = useState('username')
+  const [sortOrder, setSortOrder] = useState('asc')
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -52,6 +59,85 @@ const UsersPage = ({ isDarkMode }) => {
   const handleUserClick = (user) => {
     setSelectedUser(user)
     setShowUserModal(true)
+  }
+
+
+  // Update filtered users when dependencies change
+  useEffect(() => {
+    let filtered = [...users]
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.role?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Apply role filter
+    if (selectedRole) {
+      filtered = filtered.filter(user => user.role?.name === selectedRole)
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue
+      
+      switch (sortBy) {
+        case 'username':
+          aValue = a.username || ''
+          bValue = b.username || ''
+          break
+        case 'email':
+          aValue = a.email || ''
+          bValue = b.email || ''
+          break
+        case 'role':
+          aValue = a.role?.name || ''
+          bValue = b.role?.name || ''
+          break
+        case 'createdAt':
+          aValue = new Date(a.createdAt)
+          bValue = new Date(b.createdAt)
+          break
+        default:
+          aValue = a.username || ''
+          bValue = b.username || ''
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
+
+    setFilteredUsers(filtered)
+  }, [users, searchTerm, selectedRole, sortBy, sortOrder])
+
+  // Get unique roles for filter dropdown
+  const getUniqueRoles = () => {
+    const roles = users.map(user => user.role?.name).filter(Boolean)
+    return [...new Set(roles)]
+  }
+
+  // Calculate KPIs
+  const calculateKPIs = () => {
+    const totalUsers = users.length
+    const activeUsers = users.filter(user => user.role).length
+    const roleDistribution = {}
+    
+    users.forEach(user => {
+      const roleName = user.role?.name || 'No Role'
+      roleDistribution[roleName] = (roleDistribution[roleName] || 0) + 1
+    })
+
+    return {
+      totalUsers,
+      activeUsers,
+      roleDistribution
+    }
   }
 
   // Check if selected user is the current user
@@ -155,8 +241,187 @@ const UsersPage = ({ isDarkMode }) => {
         isDarkMode={isDarkMode}
       />
 
+      {/* KPIs Section */}
+      {users.length > 0 && (
+        <div className="mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Total Users */}
+            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Total Users
+                  </p>
+                  <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {calculateKPIs().totalUsers}
+                  </p>
+                </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <svg className={`w-4 h-4 ${isDarkMode ? 'text-pharma-teal' : 'text-pharma-teal'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Users */}
+            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Active Users
+                  </p>
+                  <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {calculateKPIs().activeUsers}
+                  </p>
+                </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <svg className={`w-4 h-4 ${isDarkMode ? 'text-green-500' : 'text-green-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtered Results */}
+            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Showing
+                  </p>
+                  <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {filteredUsers.length}
+                  </p>
+                </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <svg className={`w-4 h-4 ${isDarkMode ? 'text-blue-500' : 'text-blue-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Role Distribution */}
+            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Roles
+                  </p>
+                  <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {Object.keys(calculateKPIs().roleDistribution).length}
+                  </p>
+                </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <svg className={`w-4 h-4 ${isDarkMode ? 'text-purple-500' : 'text-purple-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters Section */}
+      <div className={`mb-6 p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* Search Input */}
+          <div className="flex-1 min-w-64">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className={`h-4 w-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`block w-full pl-10 pr-3 py-2 border rounded-md ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                } focus:outline-none focus:ring-2 focus:ring-pharma-teal focus:border-pharma-teal`}
+              />
+            </div>
+          </div>
+
+          {/* Role Filter */}
+          <div className="min-w-48">
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className={`block w-full px-3 py-2 border rounded-md ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              } focus:outline-none focus:ring-2 focus:ring-pharma-teal focus:border-pharma-teal`}
+            >
+              <option value="">All Roles</option>
+              {getUniqueRoles().map(role => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div className="min-w-32">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={`block w-full px-3 py-2 border rounded-md ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              } focus:outline-none focus:ring-2 focus:ring-pharma-teal focus:border-pharma-teal`}
+            >
+              <option value="username">Username</option>
+              <option value="email">Email</option>
+              <option value="role">Role</option>
+              <option value="createdAt">Created Date</option>
+            </select>
+          </div>
+
+          {/* Sort Order */}
+          <div className="min-w-24">
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className={`block w-full px-3 py-2 border rounded-md ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-white border-gray-300 text-gray-900'
+              } focus:outline-none focus:ring-2 focus:ring-pharma-teal focus:border-pharma-teal`}
+            >
+              <option value="asc">Asc</option>
+              <option value="desc">Desc</option>
+            </select>
+          </div>
+
+          {/* Clear Filters */}
+          {(searchTerm || selectedRole) && (
+            <button
+              onClick={() => {
+                setSearchTerm('')
+                setSelectedRole('')
+              }}
+              className={`px-3 py-2 text-sm font-medium rounded-md ${
+                isDarkMode 
+                  ? 'bg-gray-600 text-white hover:bg-gray-500' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              } transition-colors`}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Users Grid */}
-      {users.length === 0 && !loading ? (
+      {filteredUsers.length === 0 && !loading ? (
         <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <svg className="mx-auto h-12 w-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
@@ -166,7 +431,7 @@ const UsersPage = ({ isDarkMode }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <div 
               key={user.id} 
               className={`rounded-lg border p-6 cursor-pointer transition-all duration-200 hover:shadow-lg ${
