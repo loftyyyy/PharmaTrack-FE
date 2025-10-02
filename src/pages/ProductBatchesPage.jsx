@@ -47,25 +47,25 @@ const ProductBatchesPage = ({ isDarkMode }) => {
      // Fetch batches from API
    const fetchBatches = async () => {
      try {
-      setError(null)
-      setLoadingError(null)
-      if (!loading) {
-        setRefreshing(true)
-      }
-       const data = await productBatchesApi.getAll()
-       console.log('📥 Raw data from fetchBatches:', data)
-       console.log('🔍 First batch structure:', data?.[0])
-               console.log('🏷️ Status fields in first batch:', data?.[0] ? {
-         status: data[0].status,
-         hasStatus: 'status' in (data[0] || {})
-       } : 'No batches')
-       
-       setBatches(Array.isArray(data) ? data : [])
+       setLoading(true)
+       setRefreshing(true)
+       setError(null)
+       setLoadingError(null)
+        const data = await productBatchesApi.getAll()
+        console.log('📥 Raw data from fetchBatches:', data)
+        console.log('🔍 First batch structure:', data?.[0])
+                console.log('🏷️ Status fields in first batch:', data?.[0] ? {
+          status: data[0].status,
+          hasStatus: 'status' in (data[0] || {})
+        } : 'No batches')
+        
+        setBatches(Array.isArray(data) ? data : [])
      } catch (error) {
        console.error('Failed to fetch batches:', error)
        setLoadingError(error)
        setBatches([])
      } finally {
+       setLoading(false)
        setRefreshing(false)
      }
    }

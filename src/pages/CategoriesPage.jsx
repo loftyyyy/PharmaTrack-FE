@@ -32,11 +32,8 @@ const CategoriesPage = ({ isDarkMode }) => {
 
   const fetchCategories = async () => {
     try {
-      if (!loading) {
-        setRefreshing(true)
-      } else {
-        setLoading(true)
-      }
+      setLoading(true)
+      setRefreshing(true)
       setError(null)
       setLoadingError(null)
       const response = await categoriesApi.getAll()

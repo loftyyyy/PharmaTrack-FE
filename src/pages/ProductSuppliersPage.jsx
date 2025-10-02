@@ -107,9 +107,8 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
 
   const fetchProductSuppliers = async () => {
     try {
-      if (!loading) {
-        setRefreshing(true)
-      }
+      setLoading(true)
+      setRefreshing(true)
       setError(null)
       setLoadingError(null)
       const response = await productSuppliersApi.getAll()
@@ -119,6 +118,7 @@ const ProductSuppliersPage = ({ isDarkMode }) => {
       setLoadingError(err)
       setProductSuppliers([])
     } finally {
+      setLoading(false)
       setRefreshing(false)
     }
   }

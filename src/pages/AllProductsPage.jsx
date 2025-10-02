@@ -47,9 +47,8 @@ const AllProductsPage = ({ isDarkMode }) => {
   // Load products and categories from backend
   const fetchProducts = async () => {
     try {
-      if (!loading) {
-        setRefreshing(true)
-      }
+      setLoading(true)
+      setRefreshing(true)
       setLoadingError(null)
       const data = await productsApi.getAll()
       setProducts(Array.isArray(data) ? data : [])
@@ -58,6 +57,7 @@ const AllProductsPage = ({ isDarkMode }) => {
       setLoadingError(error)
       setProducts([])
     } finally {
+      setLoading(false)
       setRefreshing(false)
     }
   }
