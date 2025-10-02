@@ -4,7 +4,7 @@ import usersApi from '../services/usersApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 const UsersPage = ({ isDarkMode }) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user: currentUser } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -52,6 +52,20 @@ const UsersPage = ({ isDarkMode }) => {
   const handleUserClick = (user) => {
     setSelectedUser(user)
     setShowUserModal(true)
+  }
+
+  // Check if selected user is the current user
+  const isCurrentUser = (user) => {
+    if (!currentUser || !user) return false
+    return currentUser.id === user.id || currentUser.username === user.username
+  }
+
+  // Handle update button click - redirect to profile page
+  const handleUpdateProfile = () => {
+    setShowUserModal(false)
+    setSelectedUser(null)
+    // Navigate to profile page
+    window.location.href = '/profile'
   }
 
   // Format date from backend (handles both array and string formats)
@@ -288,8 +302,19 @@ const UsersPage = ({ isDarkMode }) => {
               )}
             </div>
 
-            {/* Close Button */}
-            <div className="flex justify-end mt-6">
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6">
+              {isCurrentUser(selectedUser) && (
+                <button
+                  onClick={handleUpdateProfile}
+                  className="px-4 py-2 rounded-lg font-medium transition-colors bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-lg"
+                >
+                  <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
+                  Update Profile
+                </button>
+              )}
               <button
                 onClick={() => {
                   setShowUserModal(false)

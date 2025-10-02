@@ -12,28 +12,12 @@ function getAuthHeaders() {
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`
-  console.log('🔍 usersApi request debug:', {
-    BASE_URL,
-    path,
-    finalUrl: url,
-    method: options.method || 'GET',
-    isDev: import.meta.env.DEV
-  })
-  
   const response = await fetch(url, {
     ...options,
     headers: {
       ...getAuthHeaders(),
       ...(options.headers || {}),
     },
-  })
-
-  console.log('📡 usersApi response:', {
-    status: response.status,
-    statusText: response.statusText,
-    url: response.url,
-    ok: response.ok,
-    redirected: response.redirected
   })
 
   if (!response.ok) {
