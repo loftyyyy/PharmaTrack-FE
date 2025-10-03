@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { productBatchesApi } from '../services/productBatchesApi'
+import customersApi from '../services/customersApi'
 
 const SalesPOSPage = ({ isDarkMode }) => {
   const [cart, setCart] = useState([])
   const [productBatches, setProductBatches] = useState([])
+  const [customers, setCustomers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [error, setError] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('CASH')
   const [amountReceived, setAmountReceived] = useState('')
@@ -20,6 +24,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
   
   const searchInputRef = useRef(null)
   const amountInputRef = useRef(null)
+  const customerSearchInputRef = useRef(null)
 
   // Fetch earliest product batches
   useEffect(() => {
@@ -51,6 +56,35 @@ const SalesPOSPage = ({ isDarkMode }) => {
       setTimeout(() => amountInputRef.current?.focus(), 100)
     }
   }, [showPaymentModal, paymentMethod])
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      setLoadingCustomers(true)
+      const data = await customersApi.getAll()
+      // Filter only active customers
+      const activeCustomers = Array.isArray(data) ? data.filter(c => c.active !== false) : []
+      setCustomers(activeCustomers)
+    } catch (err) {
+      console.error('Error fetching customers:', err)
+      showNotification('Failed to load customers', 'error')
+    } finally {
+      setLoadingCustomers(false)
+    }
+  }, [])
+
+  // Fetch customers when modal opens
+  useEffect(() => {
+    if (showCustomerModal && customers.length === 0) {
+      fetchCustomers()
+    }
+  }, [showCustomerModal, customers.length, fetchCustomers])
+
+  // Focus customer search when modal opens
+  useEffect(() => {
+    if (showCustomerModal) {
+      setTimeout(() => customerSearchInputRef.current?.focus(), 100)
+    }
+  }, [showCustomerModal])
 
   const addToCart = (batch, quantity = 1) => {
     if (batch.quantity <= 0) {
@@ -319,7 +353,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
             <input
                 ref={searchInputRef}
               type="text"
-                placeholder="🔍 Scan barcode or search product (F1)..."
+                placeholder="Scan barcode or search product (F1)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
                 className={`w-full px-4 py-3 pl-12 text-lg rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
@@ -439,7 +473,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                     <span className="font-semibold">{selectedCustomer.name}</span>
                   </div>
                   <div className={`text-sm mt-1 ml-7 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {selectedCustomer.phone}
+                    {selectedCustomer.phoneNumber}
                   </div>
                 </div>
               ) : (
@@ -616,24 +650,54 @@ const SalesPOSPage = ({ isDarkMode }) => {
 
       {/* Customer Selection Modal */}
       {showCustomerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCustomerModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} className={`rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl ${
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => {
+          setShowCustomerModal(false)
+          setCustomerSearchTerm('')
+        }}>
+          <div onClick={(e) => e.stopPropagation()} className={`rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl max-h-[80vh] flex flex-col ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Select Customer</h2>
-              <button onClick={() => setShowCustomerModal(false)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={() => {
+                setShowCustomerModal(false)
+                setCustomerSearchTerm('')
+              }} className="text-gray-500 hover:text-gray-700">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
+
+            {/* Customer Search */}
+            <div className="mb-4">
+              <div className="relative">
+                <input
+                  ref={customerSearchInputRef}
+                  type="text"
+                  placeholder="Search customers by name, email, or phone..."
+                  value={customerSearchTerm}
+                  onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                  className={`w-full px-4 py-2 pl-10 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
+                    isDarkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
+                />
+                <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+            </div>
             
-            <div className="space-y-2 mb-4">
+            {/* Customers List */}
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {/* Walk-in Customer */}
               <button
                 onClick={() => {
                   setSelectedCustomer(null)
                   setShowCustomerModal(false)
+                  setCustomerSearchTerm('')
                 }}
                 className={`w-full p-4 rounded-lg text-left transition-colors border-2 ${
                   !selectedCustomer 
@@ -649,32 +713,62 @@ const SalesPOSPage = ({ isDarkMode }) => {
                 </div>
               </button>
               
-              {/* Mock customers */}
-              {[
-                { id: 1, name: 'John Smith', phone: '+1-555-0123' },
-                { id: 2, name: 'Sarah Johnson', phone: '+1-555-0456' },
-                { id: 3, name: 'Michael Brown', phone: '+1-555-0789' }
-              ].map((customer) => (
+              {/* Loading State */}
+              {loadingCustomers && (
+                <div className="text-center py-4">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-pharma-teal border-t-transparent"></div>
+                  <p className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading customers...</p>
+                </div>
+              )}
+
+              {/* Customers */}
+              {!loadingCustomers && (() => {
+                const filteredCustomers = customers.filter(customer => {
+                  const searchLower = customerSearchTerm.toLowerCase()
+                  return !customerSearchTerm || 
+                    customer.name?.toLowerCase().includes(searchLower) ||
+                    customer.email?.toLowerCase().includes(searchLower) ||
+                    customer.phoneNumber?.includes(searchLower)
+                })
+
+                if (filteredCustomers.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {customerSearchTerm ? 'No customers found matching your search.' : 'No customers available.'}
+                      </p>
+                    </div>
+                  )
+                }
+
+                return filteredCustomers.map((customer) => (
                 <button
-                  key={customer.id}
+                    key={customer.customerId}
                   onClick={() => {
                     setSelectedCustomer(customer)
                     setShowCustomerModal(false)
-                  }}
-                  className={`w-full p-4 rounded-lg text-left transition-colors border-2 ${
-                    selectedCustomer?.id === customer.id
-                      ? 'border-pharma-teal bg-pharma-teal/10'
-                      : isDarkMode
-                        ? 'border-gray-700 bg-gray-700 hover:bg-gray-600'
-                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="font-medium">{customer.name}</div>
-                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {customer.phone}
-                  </div>
-                </button>
-              ))}
+                      setCustomerSearchTerm('')
+                    }}
+                    className={`w-full p-4 rounded-lg text-left transition-colors border-2 ${
+                      selectedCustomer?.customerId === customer.customerId
+                        ? 'border-pharma-teal bg-pharma-teal/10'
+                        : isDarkMode
+                          ? 'border-gray-700 bg-gray-700 hover:bg-gray-600'
+                          : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="font-medium">{customer.name}</div>
+                    <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {customer.phoneNumber}
+                    </div>
+                    {customer.email && (
+                      <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                        {customer.email}
+                      </div>
+                    )}
+                  </button>
+                ))
+              })()}
             </div>
           </div>
         </div>
@@ -747,11 +841,11 @@ const SalesPOSPage = ({ isDarkMode }) => {
                       key={amount}
                       onClick={() => setAmountReceived(amount.toString())}
                       className={`py-3 rounded-lg font-semibold transition-colors ${
-                        isDarkMode
-                          ? 'bg-gray-700 hover:bg-gray-600'
-                          : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
-                    >
+                    isDarkMode
+                      ? 'bg-gray-700 hover:bg-gray-600'
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
+                >
                       ₱{amount}
                     </button>
                   ))}
@@ -778,7 +872,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                 </>
               )}
             </div>
-
+            
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-4">
             <button
