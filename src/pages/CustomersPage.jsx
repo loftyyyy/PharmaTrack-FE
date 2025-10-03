@@ -78,7 +78,6 @@ const CustomersPage = ({ isDarkMode }) => {
       addressCityMunicipality: customer.addressCityMunicipality || '',
       addressProvince: customer.addressProvince || '',
       addressPostalCode: customer.addressPostalCode || '',
-      isActive: typeof customer.isActive === 'boolean' ? customer.isActive : true
     })
     setShowAddModal(true)
   }
@@ -432,7 +431,7 @@ const CustomersPage = ({ isDarkMode }) => {
                 </div>
               </div>
               
-            <div className="mt-4">
+            {/* <div className="mt-4">
               <label className={`inline-flex items-center gap-2 text-sm font-medium ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -443,7 +442,7 @@ const CustomersPage = ({ isDarkMode }) => {
                 />
                 Active
               </label>
-            </div>
+            </div> */}
 
               <div className="flex space-x-3 mt-6">
                 <button
