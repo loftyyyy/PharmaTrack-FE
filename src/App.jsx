@@ -30,6 +30,7 @@ import PurchasesPage from './pages/PurchasesPage'
 import PurchaseItemsPage from './pages/PurchaseItemsPage'
 import CustomersPage from './pages/CustomersPage'
 import SalesPOSPage from './pages/SalesPOSPage'
+import SalesTransactionsPage from './pages/SalesTransactionsPage'
 
 // Import ProtectedRoute component
 import ProtectedRoute from './components/ProtectedRoute'
@@ -309,15 +310,7 @@ const ProtectedApp = () => {
               {/* Sales Routes */}
               <Route path="/sales-transactions" element={
                 <ProtectedRoute requiredRole="ADMIN">
-                  <div className={`p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-                    <h1 className="text-2xl font-bold">Sales Transactions</h1>
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      View, edit, and manage all sales transactions with void/cancel handling.
-                    </p>
-                    <div className="mt-4 p-4 rounded-lg border border-dashed border-gray-300">
-                      <p className="text-center text-gray-500">This page is under development.</p>
-                    </div>
-                  </div>
+                  <SalesTransactionsPage isDarkMode={isDarkMode} />
                 </ProtectedRoute>
               } />
               
