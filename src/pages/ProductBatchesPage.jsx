@@ -25,6 +25,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
     expiryDate: '',
     quantity: '',
     costPerUnit: '',
+    sellingPricePerUnit: '',
     location: '',
     status: 'AVAILABLE'
   })
@@ -122,6 +123,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
             expiryDate: formData.expiryDate,
             quantity: parseInt(formData.quantity),
             purchasePricePerUnit: parseFloat(formData.costPerUnit),
+            sellingPricePerUnit: parseFloat(formData.sellingPricePerUnit),
             location: formData.location,
             batchStatus: formData.status
           }
@@ -164,24 +166,25 @@ const ProductBatchesPage = ({ isDarkMode }) => {
              console.log('🔄 After refresh - all batches:', batches)
              console.log('🔍 Updated batch after refresh:', batches.find(b => (b.productBatchId || b.id) === batchId))
              
-             setSuccess('Batch updated successfully!')
-             
-             // Close modal and reset form on success
-             setShowAddModal(false)
-             setEditingBatch(null)
-             setFormData({
-               batchNumber: '',
-               productId: '',
-               manufacturingDate: '',
-               expiryDate: '',
-               quantity: '',
-               costPerUnit: '',
-               location: '',
-               status: 'AVAILABLE'
-             })
-             
-             // Auto-hide success message after 3 seconds
-             setTimeout(() => setSuccess(null), 3000)
+            setSuccess('Batch updated successfully!')
+            
+            // Close modal and reset form on success
+            setShowAddModal(false)
+            setEditingBatch(null)
+            setFormData({
+              batchNumber: '',
+              productId: '',
+              manufacturingDate: '',
+              expiryDate: '',
+              quantity: '',
+              costPerUnit: '',
+              sellingPricePerUnit: '',
+              location: '',
+              status: 'AVAILABLE'
+            })
+            
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => setSuccess(null), 3000)
          } else {
            // Creation disabled
            throw new Error('Batch creation is disabled')
@@ -201,6 +204,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
             expiryDate: '',
             quantity: '',
             costPerUnit: '',
+            sellingPricePerUnit: '',
             location: '',
             status: 'AVAILABLE'
           })
@@ -259,16 +263,17 @@ const ProductBatchesPage = ({ isDarkMode }) => {
           effectiveStatus: effectiveStatus
         })
        
-       setFormData({
-         batchNumber: batch.batchNumber,
-         productId: (batch.product?.id || batch.productId)?.toString() || '',
-         manufacturingDate: convertDateForForm(batch.manufacturingDate),
-         expiryDate: convertDateForForm(batch.expiryDate),
-         quantity: batch.quantity.toString(),
-         costPerUnit: (batch.purchasePricePerUnit || batch.costPerUnit).toString(),
-         location: batch.location || '',
-         status: effectiveStatus
-       })
+      setFormData({
+        batchNumber: batch.batchNumber,
+        productId: (batch.product?.id || batch.productId)?.toString() || '',
+        manufacturingDate: convertDateForForm(batch.manufacturingDate),
+        expiryDate: convertDateForForm(batch.expiryDate),
+        quantity: batch.quantity.toString(),
+        costPerUnit: (batch.purchasePricePerUnit || batch.costPerUnit).toString(),
+        sellingPricePerUnit: (batch.sellingPricePerUnit || '').toString(),
+        location: batch.location || '',
+        status: effectiveStatus
+      })
      setShowAddModal(true)
    }
 
@@ -673,7 +678,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                    <label className={`block text-sm font-medium mb-2 ${
                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
                    }`}>
-                     Cost Per Unit *
+                     Purchase Price Per Unit *
                    </label>
                    <input
                      type="number"
@@ -688,7 +693,29 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                          : 'bg-white border-gray-300 text-gray-900'
                      }`}
                     disabled
-                     placeholder="Enter cost per unit"
+                     placeholder="Enter purchase price per unit"
+                   />
+                 </div>
+                 
+                 <div>
+                   <label className={`block text-sm font-medium mb-2 ${
+                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                   }`}>
+                     Selling Price Per Unit *
+                   </label>
+                   <input
+                     type="number"
+                     required
+                     min="0"
+                     step="0.01"
+                     value={formData.sellingPricePerUnit}
+                     onChange={(e) => setFormData({ ...formData, sellingPricePerUnit: e.target.value })}
+                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                       isDarkMode
+                         ? 'bg-gray-700 border-gray-600 text-white'
+                         : 'bg-white border-gray-300 text-gray-900'
+                     }`}
+                     placeholder="Enter selling price per unit"
                    />
                  </div>
                  
@@ -762,6 +789,7 @@ const ProductBatchesPage = ({ isDarkMode }) => {
                       expiryDate: '',
                       quantity: '',
                       costPerUnit: '',
+                      sellingPricePerUnit: '',
                       location: '',
                       status: 'AVAILABLE'
                     })

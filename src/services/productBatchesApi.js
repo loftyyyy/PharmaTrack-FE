@@ -125,6 +125,28 @@ export const productBatchesApi = {
       console.error('Failed to fetch all product batches:', error)
       throw error
     }
+  },
+
+  // Get earliest batches (for POS - FIFO inventory management)
+  getEarliest: async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/productBatches/earliest`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('pharma_access_token')}`
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      return await response.json()
+    } catch (error) {
+      console.error('Failed to fetch earliest product batches:', error)
+      throw error
+    }
   }
 }
 

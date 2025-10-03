@@ -1,69 +1,77 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { productBatchesApi } from '../services/productBatchesApi'
 
 const SalesPOSPage = ({ isDarkMode }) => {
-  const { user, apiRequest } = useAuth()
   const [cart, setCart] = useState([])
-  const [products, setProducts] = useState([])
+  const [productBatches, setProductBatches] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Mock products data
+  // Fetch earliest product batches
   useEffect(() => {
-    const mockProducts = [
-      { id: 1, name: 'Paracetamol 500mg', price: 2.50, stock: 150, barcode: '123456789001' },
-      { id: 2, name: 'Amoxicillin 250mg', price: 5.75, stock: 25, barcode: '123456789002' },
-      { id: 3, name: 'Vitamin C 1000mg', price: 1.25, stock: 0, barcode: '123456789003' },
-      { id: 4, name: 'Ibuprofen 400mg', price: 3.00, stock: 200, barcode: '123456789004' },
-      { id: 5, name: 'Cough Syrup', price: 12.00, stock: 75, barcode: '123456789005' }
-    ]
-    setProducts(mockProducts)
+    const fetchProductBatches = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const batches = await productBatchesApi.getEarliest()
+        setProductBatches(batches)
+      } catch (err) {
+        console.error('Error fetching product batches:', err)
+        setError('Failed to load products. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProductBatches()
   }, [])
 
-  const addToCart = (product) => {
-    if (product.stock <= 0) {
-      alert('Product is out of stock!')
+  const addToCart = (batch) => {
+    if (batch.quantity <= 0) {
+      alert('Product batch is out of stock!')
       return
     }
 
-    const existingItem = cart.find(item => item.id === product.id)
+    const existingItem = cart.find(item => item.productBatchId === batch.productBatchId)
     if (existingItem) {
-      if (existingItem.quantity >= product.stock) {
+      if (existingItem.cartQuantity >= batch.quantity) {
         alert('Cannot add more items than available in stock!')
         return
       }
       setCart(cart.map(item => 
-        item.id === product.id 
-          ? { ...item, quantity: item.quantity + 1 }
+        item.productBatchId === batch.productBatchId 
+          ? { ...item, cartQuantity: item.cartQuantity + 1 }
           : item
       ))
     } else {
-      setCart([...cart, { ...product, quantity: 1 }])
+      setCart([...cart, { ...batch, cartQuantity: 1 }])
     }
   }
 
-  const updateQuantity = (productId, newQuantity) => {
+  const updateQuantity = (batchId, newQuantity) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId)
+      removeFromCart(batchId)
       return
     }
 
-    const product = products.find(p => p.id === productId)
-    if (newQuantity > product.stock) {
+    const batch = productBatches.find(b => b.productBatchId === batchId)
+    if (newQuantity > batch.quantity) {
       alert('Cannot exceed available stock!')
       return
     }
 
     setCart(cart.map(item => 
-      item.id === productId 
-        ? { ...item, quantity: newQuantity }
+      item.productBatchId === batchId 
+        ? { ...item, cartQuantity: newQuantity }
         : item
     ))
   }
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.id !== productId))
+  const removeFromCart = (batchId) => {
+    setCart(cart.filter(item => item.productBatchId !== batchId))
   }
 
   const clearCart = () => {
@@ -72,7 +80,10 @@ const SalesPOSPage = ({ isDarkMode }) => {
   }
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0)
+    return cart.reduce((total, item) => {
+      const price = item.sellingPricePerUnit || 0
+      return total + (price * item.cartQuantity)
+    }, 0)
   }
 
   const processSale = () => {
@@ -91,9 +102,10 @@ const SalesPOSPage = ({ isDarkMode }) => {
     }
   }
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.barcode.includes(searchTerm)
+  const filteredBatches = productBatches.filter(batch =>
+    batch.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    batch.product?.sku?.includes(searchTerm) ||
+    batch.batchNumber?.includes(searchTerm)
   )
 
   return (
@@ -115,7 +127,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Search products by name or barcode..."
+              placeholder="Search products by name, SKU, or batch number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
@@ -126,39 +138,71 @@ const SalesPOSPage = ({ isDarkMode }) => {
             />
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-pharma-teal border-t-transparent"></div>
+              <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading products...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => addToCart(product)}
-                className={`rounded-lg border p-4 cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                  product.stock <= 0
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:scale-105'
-                } ${
-                  isDarkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:border-pharma-teal' 
-                    : 'bg-white border-gray-200 hover:border-pharma-teal'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-sm">{product.name}</h3>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    product.stock > 10 ? 'bg-green-100 text-green-800' :
-                    product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {product.stock} left
-                  </span>
+          {!loading && !error && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredBatches.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    {searchTerm ? 'No products found matching your search.' : 'No products available.'}
+                  </p>
                 </div>
-                <p className="text-lg font-bold text-pharma-teal">₱{Number(product.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {product.barcode}
-                </p>
-              </div>
-            ))}
-          </div>
+              ) : (
+                filteredBatches.map((batch) => (
+                  <div
+                    key={batch.productBatchId}
+                    onClick={() => addToCart(batch)}
+                    className={`rounded-lg border p-4 cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                      batch.quantity <= 0
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:scale-105'
+                    } ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-700 hover:border-pharma-teal' 
+                        : 'bg-white border-gray-200 hover:border-pharma-teal'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium text-sm">{batch.product?.name || 'Unknown Product'}</h3>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        batch.quantity > 10 ? 'bg-green-100 text-green-800' :
+                        batch.quantity > 0 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {batch.quantity} left
+                      </span>
+                    </div>
+                    <p className="text-lg font-bold text-pharma-teal">
+                      ₱{Number(batch.sellingPricePerUnit || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {batch.product?.sku || batch.batchNumber}
+                    </p>
+                    {batch.expiryDate && (
+                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Exp: {new Date(batch.expiryDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cart Section */}
@@ -212,16 +256,21 @@ const SalesPOSPage = ({ isDarkMode }) => {
               </p>
             ) : (
               cart.map((item) => (
-                <div key={item.id} className={`flex justify-between items-center p-3 rounded border ${
+                <div key={item.productBatchId} className={`flex justify-between items-center p-3 rounded border ${
                   isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
                 }`}>
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{item.name}</div>
-                    <div className="text-pharma-teal font-bold">₱{Number(item.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div className="font-medium text-sm">{item.product?.name || 'Unknown'}</div>
+                    <div className="text-pharma-teal font-bold">
+                      ₱{Number(item.sellingPricePerUnit || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Batch: {item.batchNumber}
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.productBatchId, item.cartQuantity - 1)}
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         isDarkMode
                           ? 'bg-gray-600 hover:bg-gray-500'
@@ -230,9 +279,9 @@ const SalesPOSPage = ({ isDarkMode }) => {
                     >
                       -
                     </button>
-                    <span className="w-8 text-center">{item.quantity}</span>
+                    <span className="w-8 text-center">{item.cartQuantity}</span>
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.productBatchId, item.cartQuantity + 1)}
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         isDarkMode
                           ? 'bg-gray-600 hover:bg-gray-500'
@@ -242,7 +291,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                       +
                     </button>
                     <button
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart(item.productBatchId)}
                       className="w-8 h-8 rounded-full flex items-center justify-center bg-red-100 text-red-600 hover:bg-red-200"
                     >
                       ×
