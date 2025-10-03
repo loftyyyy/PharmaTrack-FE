@@ -385,6 +385,10 @@ const PurchaseItemsPage = ({ isDarkMode }) => {
                     <span className="font-semibold">₱{Number(item.unitPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Purchase Price:</span>
+                    <span className="font-semibold">₱{Number(item.purchasePricePerUnit || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Value:</span>
                     <span className="font-bold text-green-600">
                       ₱{Number((item.quantity || 0) * (item.purchasePricePerUnit || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
