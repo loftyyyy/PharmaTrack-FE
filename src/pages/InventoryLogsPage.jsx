@@ -420,8 +420,14 @@ const InventoryLogsPage = ({ isDarkMode }) => {
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getChangeTypeColor(log.changeType)}`}>
                         {getChangeTypeIcon(log.changeType)} {getChangeTypeLabel(log.changeType)}
                       </span>
-                      <div className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Qty: {log.quantityChanged > 0 ? `+${log.quantityChanged}` : log.quantityChanged}
+                      <div className={`text-sm mt-1 font-semibold ${
+                        log.sale 
+                          ? 'text-red-600' 
+                          : log.quantityChanged > 0 
+                            ? 'text-green-600' 
+                            : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Qty: {log.sale ? `-${log.quantityChanged}` : (log.quantityChanged > 0 ? `+${log.quantityChanged}` : log.quantityChanged)}
                       </div>
                       <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                         {log.reason || '—'}
@@ -440,12 +446,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
                           Purchase #{log.purchaseId}
                         </div>
                       )}
-                      {log.adjustmentReference && (
-                        <div className={`${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                          {log.adjustmentReference}
-                        </div>
-                      )}
-                      {!log.saleId && !log.purchaseId && !log.adjustmentReference && (
+                      {!log.saleId && !log.purchaseId && (
                         <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>—</span>
                       )}
                     </div>
@@ -490,8 +491,8 @@ const InventoryLogsPage = ({ isDarkMode }) => {
 
       {/* Details Modal */}
       {showDetailsModal && selectedLog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDetailsModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} className={`rounded-xl p-6 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto ${
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowDetailsModal(false)}>
+          <div onClick={(e) => e.stopPropagation()} className={`rounded-xl p-6 w-full max-w-3xl shadow-2xl ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
             <div className="flex justify-between items-center mb-6">
@@ -546,7 +547,15 @@ const InventoryLogsPage = ({ isDarkMode }) => {
                     </div>
                     <div>
                       <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Quantity Changed</p>
-                      <p className="font-semibold text-lg">{selectedLog.quantityChanged > 0 ? `+${selectedLog.quantityChanged}` : selectedLog.quantityChanged}</p>
+                      <p className={`font-bold text-xl ${
+                        selectedLog.sale 
+                          ? 'text-red-600' 
+                          : selectedLog.quantityChanged > 0 
+                            ? 'text-green-600' 
+                            : ''
+                      }`}>
+                        {selectedLog.sale ? `-${selectedLog.quantityChanged}` : (selectedLog.quantityChanged > 0 ? `+${selectedLog.quantityChanged}` : selectedLog.quantityChanged)}
+                      </p>
                     </div>
                     <div className="col-span-2">
                       <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Reason</p>
