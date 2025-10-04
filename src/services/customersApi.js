@@ -31,6 +31,7 @@ async function request(path, options = {}) {
 const customersApi = {
   getAll: () => request('/api/v1/customers', { method: 'GET' }),
   getById: (id) => request(`/api/v1/customers/${id}`, { method: 'GET' }),
+  getWalkIn: () => request('/api/v1/customers/walkIn', { method: 'GET' }),
   create: (payload) => request('/api/v1/customers/create', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id, payload) => request(`/api/v1/customers/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id) => request(`/api/v1/customers/${id}`, { method: 'DELETE' }),

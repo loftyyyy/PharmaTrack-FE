@@ -7,6 +7,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
   const [cart, setCart] = useState([])
   const [productBatches, setProductBatches] = useState([])
   const [customers, setCustomers] = useState([])
+  const [walkInCustomer, setWalkInCustomer] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [customerSearchTerm, setCustomerSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState(null)
@@ -30,23 +31,31 @@ const SalesPOSPage = ({ isDarkMode }) => {
   const amountInputRef = useRef(null)
   const customerSearchInputRef = useRef(null)
 
-  // Fetch earliest product batches
+  // Fetch earliest product batches and walk-in customer
   useEffect(() => {
-    const fetchProductBatches = async () => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true)
         setError(null)
-        const batches = await productBatchesApi.getEarliest()
+        
+        // Fetch product batches and walk-in customer in parallel
+        const [batches, walkIn] = await Promise.all([
+          productBatchesApi.getEarliest(),
+          customersApi.getWalkIn()
+        ])
+        
         setProductBatches(batches)
+        setWalkInCustomer(walkIn)
+        console.log('Walk-in customer loaded:', walkIn)
       } catch (err) {
-        console.error('Error fetching product batches:', err)
+        console.error('Error fetching initial data:', err)
         setError('Failed to load products. Please try again.')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchProductBatches()
+    fetchInitialData()
   }, [])
 
   // Auto-focus search input on mount
@@ -269,8 +278,11 @@ const SalesPOSPage = ({ isDarkMode }) => {
       }))
 
       // Create SaleCreateDTO
+      // If no customer is selected, use walk-in customer ID
+      const customerId = selectedCustomer?.customerId || walkInCustomer?.customerId || null
+      
       const saleData = {
-        customerId: selectedCustomer?.customerId || null,
+        customerId: customerId,
         saleDate: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
         paymentMethod: paymentMethod,
         discountAmount: 0.00, // You can add discount functionality later
@@ -278,6 +290,11 @@ const SalesPOSPage = ({ isDarkMode }) => {
       }
 
       console.log('Creating sale with data:', saleData)
+      console.log('Customer Info:', {
+        selectedCustomer: selectedCustomer,
+        walkInCustomer: walkInCustomer,
+        usingCustomerId: customerId
+      })
 
       // Call API to create sale
       const result = await salesApi.create(saleData)
@@ -745,7 +762,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
               >
                 <div className="font-medium">Walk-in Customer</div>
                 <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  No customer record
+                  {walkInCustomer ? `Default customer (ID: ${walkInCustomer.customerId})` : 'No customer record'}
                 </div>
               </button>
               
