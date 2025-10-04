@@ -919,9 +919,22 @@ const SalesPOSPage = ({ isDarkMode }) => {
                   <input
                     ref={amountInputRef}
                     type="number"
+                    min="0"
                     step="0.01"
                     value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      // Only allow positive numbers or empty string
+                      if (value === '' || parseFloat(value) >= 0) {
+                        setAmountReceived(value)
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      // Prevent minus sign from being typed
+                      if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                        e.preventDefault()
+                      }
+                    }}
                     placeholder="0.00"
                     className={`w-full px-4 py-4 text-2xl font-bold text-center rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
                       isDarkMode
