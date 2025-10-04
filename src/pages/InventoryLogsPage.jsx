@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import inventoryLogsApi from '../services/inventoryLogsApi'
 import ErrorDisplay from '../components/ErrorDisplay'
-import { getErrorMessage } from '../utils/errorHandler'
 
 // Converts backend array timestamp [yyyy, MM, dd, HH, mm, ss, nanos?] to ISO string
 function toIsoFromBackendTimestamp(timestamp) {
@@ -156,8 +155,10 @@ const InventoryLogsPage = ({ isDarkMode }) => {
         changeType: log.changeType || 'UNKNOWN',
         quantityChanged: log.quantityChanged || 0,
         reason: log.reason || '—',
-        saleId: log.saleId || null,
-        purchaseId: log.purchaseId || null,
+        sale: log.sale || null,
+        purchase: log.purchase || null,
+        saleId: log.sale?.saleId || null,
+        purchaseId: log.purchase?.purchaseId || null,
         adjustmentReference: log.adjustmentReference || null,
         createdAt: toIsoFromBackendTimestamp(log.createdAt) || new Date().toISOString(),
       })) : []
@@ -489,64 +490,241 @@ const InventoryLogsPage = ({ isDarkMode }) => {
 
       {/* Details Modal */}
       {showDetailsModal && selectedLog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto ${
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDetailsModal(false)}>
+          <div onClick={(e) => e.stopPropagation()} className={`rounded-xl p-6 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
-            <h2 className="text-xl font-bold mb-4">Inventory Log Details</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Inventory Log Details</h2>
+              <button onClick={() => setShowDetailsModal(false)} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
             
             <div className="space-y-4">
+              {/* Product Information */}
               <div>
-                <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <h3 className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Product Information
                 </h3>
-                <div className={`mt-1 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <p><strong>Name:</strong> {selectedLog.product?.name || 'Unknown'}</p>
-                  <p><strong>SKU:</strong> {selectedLog.product?.sku || '—'}</p>
-                  <p><strong>Batch:</strong> {selectedLog.productBatch?.batchNumber || selectedLog.productBatch?.id || '—'}</p>
+                <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Product Name</p>
+                      <p className="font-semibold">{selectedLog.product?.name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>SKU</p>
+                      <p className="font-semibold">{selectedLog.product?.sku || '—'}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Batch Number</p>
+                      <p className="font-semibold">{selectedLog.productBatch?.batchNumber || '—'}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Batch Quantity</p>
+                      <p className="font-semibold">{selectedLog.productBatch?.quantity || '—'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Change Information */}
               <div>
-                <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <h3 className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Change Information
                 </h3>
-                <div className={`mt-1 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <p><strong>Type:</strong> {getChangeTypeLabel(selectedLog.changeType)}</p>
-                  <p><strong>Quantity Changed:</strong> {selectedLog.quantityChanged > 0 ? `+${selectedLog.quantityChanged}` : selectedLog.quantityChanged}</p>
-                  <p><strong>Reason:</strong> {selectedLog.reason || '—'}</p>
+                <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Change Type</p>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getChangeTypeColor(selectedLog.changeType)}`}>
+                        {getChangeTypeIcon(selectedLog.changeType)} {getChangeTypeLabel(selectedLog.changeType)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Quantity Changed</p>
+                      <p className="font-semibold text-lg">{selectedLog.quantityChanged > 0 ? `+${selectedLog.quantityChanged}` : selectedLog.quantityChanged}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Reason</p>
+                      <p className="font-semibold">{selectedLog.reason || '—'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Date & Time</p>
+                      <p className="font-semibold">
+                        {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleString() : '—'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Sale Details - Only show if sale exists */}
+              {selectedLog.sale && (
               <div>
-                <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  References
+                  <h3 className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Sale Details
                 </h3>
-                <div className={`mt-1 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  {selectedLog.saleId && <p><strong>Sale ID:</strong> {selectedLog.saleId}</p>}
-                  {selectedLog.purchaseId && <p><strong>Purchase ID:</strong> {selectedLog.purchaseId}</p>}
-                  {selectedLog.adjustmentReference && <p><strong>Adjustment Reference:</strong> {selectedLog.adjustmentReference}</p>}
-                  {!selectedLog.saleId && !selectedLog.purchaseId && !selectedLog.adjustmentReference && (
-                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No references available</p>
-                  )}
+                  <div className={`p-4 rounded-lg border-2 ${isDarkMode ? 'bg-gray-700 border-blue-600' : 'bg-blue-50 border-blue-300'}`}>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Sale ID</p>
+                        <p className="font-semibold text-blue-600">#{selectedLog.sale.saleId}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Customer</p>
+                        <p className="font-semibold">{selectedLog.sale.customerName || 'Walk-in'}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Sale Date</p>
+                        <p className="font-semibold">
+                          {selectedLog.sale.saleDate ? new Date(selectedLog.sale.saleDate).toLocaleDateString() : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Payment Method</p>
+                        <p className="font-semibold">{selectedLog.sale.paymentMethod || '—'}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</p>
+                        <p className="font-semibold">
+                          ₱{Number(selectedLog.sale.totalAmount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Grand Total</p>
+                        <p className="font-bold text-lg text-pharma-teal">
+                          ₱{Number(selectedLog.sale.grandTotal || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Status</p>
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          selectedLog.sale.saleStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                          selectedLog.sale.saleStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          selectedLog.sale.saleStatus === 'VOIDED' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedLog.sale.saleStatus || 'PENDING'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Sale Items */}
+                    {selectedLog.sale.saleItems && selectedLog.sale.saleItems.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className={`text-xs font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Sale Items ({selectedLog.sale.saleItems.length})
+                        </p>
+                        <div className="space-y-1">
+                          {selectedLog.sale.saleItems.map((item) => (
+                            <div key={item.saleItemId} className="flex justify-between text-sm">
+                              <span>{item.productName}</span>
+                              <span>
+                                {item.quantity} × ₱{Number(item.subTotal / item.quantity).toLocaleString('en-PH', { minimumFractionDigits: 2 })} = 
+                                <strong className="ml-1">₱{Number(item.subTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Purchase Details - Only show if purchase exists */}
+              {selectedLog.purchase && (
+                <div>
+                  <h3 className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Purchase Details
+                  </h3>
+                  <div className={`p-4 rounded-lg border-2 ${isDarkMode ? 'bg-gray-700 border-green-600' : 'bg-green-50 border-green-300'}`}>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Purchase ID</p>
+                        <p className="font-semibold text-green-600">#{selectedLog.purchase.purchaseId}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Supplier</p>
+                        <p className="font-semibold">{selectedLog.purchase.supplier?.name || '—'}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Purchase Date</p>
+                        <p className="font-semibold">
+                          {selectedLog.purchase.purchaseDate ? new Date(selectedLog.purchase.purchaseDate).toLocaleDateString() : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created By</p>
+                        <p className="font-semibold">{selectedLog.purchase.createdBy || '—'}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Amount</p>
+                        <p className="font-bold text-lg text-pharma-teal">
+                          ₱{Number(selectedLog.purchase.totalAmount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Status</p>
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          selectedLog.purchase.purchaseStatus === 'RECEIVED' ? 'bg-green-100 text-green-800' :
+                          selectedLog.purchase.purchaseStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          selectedLog.purchase.purchaseStatus === 'ORDERED' ? 'bg-blue-100 text-blue-800' :
+                          selectedLog.purchase.purchaseStatus === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedLog.purchase.purchaseStatus || 'PENDING'}
+                        </span>
                 </div>
               </div>
 
-              <div>
-                <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Timestamp
-                </h3>
-                <div className={`mt-1 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                  <p><strong>Date:</strong> {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleDateString() : '—'}</p>
-                  <p><strong>Time:</strong> {selectedLog.createdAt ? new Date(selectedLog.createdAt).toLocaleTimeString() : '—'}</p>
+                    {/* Purchase Items */}
+                    {selectedLog.purchase.purchaseItems && selectedLog.purchase.purchaseItems.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className={`text-xs font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Purchase Items ({selectedLog.purchase.purchaseItems.length})
+                        </p>
+                        <div className="space-y-1">
+                          {selectedLog.purchase.purchaseItems.map((item) => (
+                            <div key={item.purchaseItemId} className="flex justify-between text-sm">
+                              <span>{item.productName || item.product?.name}</span>
+                              <span>
+                                {item.quantity} × ₱{Number(item.purchasePricePerUnit || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} = 
+                                <strong className="ml-1">₱{Number((item.quantity * item.purchasePricePerUnit) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Adjustment Reference - Only show if no sale or purchase */}
+              {!selectedLog.sale && !selectedLog.purchase && selectedLog.adjustmentReference && (
+              <div>
+                  <h3 className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Adjustment Details
+                </h3>
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <div>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Adjustment Reference</p>
+                      <p className="font-semibold">{selectedLog.adjustmentReference}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end mt-6">
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
                   isDarkMode
                     ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                     : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
