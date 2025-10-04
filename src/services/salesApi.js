@@ -36,7 +36,7 @@ const salesApi = {
   getById: (id) => request(`/api/v1/sales/${id}`, { method: 'GET' }),
   
   // Create new sale
-  create: (payload) => request('/api/v1/sales', { method: 'POST', body: JSON.stringify(payload) }),
+  create: (payload) => request('/api/v1/sales/create', { method: 'POST', body: JSON.stringify(payload) }),
   
   // Update sale
   update: (id, payload) => request(`/api/v1/sales/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { productBatchesApi } from '../services/productBatchesApi'
 import customersApi from '../services/customersApi'
+import salesApi from '../services/salesApi'
 
 const SalesPOSPage = ({ isDarkMode }) => {
   const [cart, setCart] = useState([])
@@ -21,6 +22,9 @@ const SalesPOSPage = ({ isDarkMode }) => {
   const [showParkedModal, setShowParkedModal] = useState(false)
   const [editingQuantity, setEditingQuantity] = useState(null)
   const [quantityInput, setQuantityInput] = useState('')
+  const [processingPayment, setProcessingPayment] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   
   const searchInputRef = useRef(null)
   const amountInputRef = useRef(null)
@@ -236,7 +240,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
     }
   }
 
-  const processSale = () => {
+  const processSale = async () => {
     if (cart.length === 0) {
       showNotification('Cart is empty!', 'error')
       return
@@ -252,22 +256,54 @@ const SalesPOSPage = ({ isDarkMode }) => {
       }
     }
 
-      // Here you would typically send the sale data to your backend
-    console.log('Processing sale:', {
-      cart,
-      customer: selectedCustomer,
-      paymentMethod,
-      amountReceived: paymentMethod === 'CASH' ? parseFloat(amountReceived) : total,
-      total
-    })
+    try {
+      setProcessingPayment(true)
+      setErrorMessage('')
+      
+      // Map cart items to SaleItemCreateDTO format
+      const items = cart.map(item => ({
+        productId: item.product?.productId || item.product?.id,
+        productBatchId: item.productBatchId,
+        quantity: item.cartQuantity,
+        unitPrice: item.sellingPricePerUnit
+      }))
 
-    showNotification('Sale processed successfully!', 'success')
-    setShowPaymentModal(false)
-    setCart([])
-    setSelectedCustomer(null)
-    setAmountReceived('')
-    setPaymentMethod('CASH')
-    searchInputRef.current?.focus()
+      // Create SaleCreateDTO
+      const saleData = {
+        customerId: selectedCustomer?.customerId || null,
+        saleDate: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
+        paymentMethod: paymentMethod,
+        discountAmount: 0.00, // You can add discount functionality later
+        items: items
+      }
+
+      console.log('Creating sale with data:', saleData)
+
+      // Call API to create sale
+      const result = await salesApi.create(saleData)
+      
+      console.log('Sale created successfully:', result)
+      
+      // Show success message
+      setSuccessMessage(`Sale #${result.saleId} processed successfully! Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
+      
+      // Clear cart and close modal
+      setTimeout(() => {
+        setShowPaymentModal(false)
+        setCart([])
+        setSelectedCustomer(null)
+        setAmountReceived('')
+        setPaymentMethod('CASH')
+        setSuccessMessage('')
+        searchInputRef.current?.focus()
+      }, 2000)
+
+    } catch (err) {
+      console.error('Error processing sale:', err)
+      setErrorMessage('Failed to process sale: ' + err.message)
+    } finally {
+      setProcessingPayment(false)
+    }
   }
 
   const showNotification = (message, type = 'info') => {
@@ -782,12 +818,40 @@ const SalesPOSPage = ({ isDarkMode }) => {
           }`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Process Payment</h2>
-              <button onClick={() => setShowPaymentModal(false)} className="text-gray-500 hover:text-gray-700">
+              <button 
+                onClick={() => setShowPaymentModal(false)} 
+                disabled={processingPayment}
+                className="text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+                  </svg>
+                  {successMessage}
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
+                  </svg>
+                  {errorMessage}
+                </div>
+              </div>
+            )}
 
             {/* Payment Methods */}
             <div className="mb-6">
@@ -877,7 +941,8 @@ const SalesPOSPage = ({ isDarkMode }) => {
             <div className="grid grid-cols-2 gap-4">
             <button
                 onClick={() => setShowPaymentModal(false)}
-                className={`py-4 px-6 rounded-lg font-semibold transition-colors ${
+                disabled={processingPayment}
+                className={`py-4 px-6 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 isDarkMode
                   ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
@@ -887,9 +952,22 @@ const SalesPOSPage = ({ isDarkMode }) => {
               </button>
               <button
                 onClick={processSale}
-                className="py-4 px-6 rounded-lg font-semibold bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all"
+                disabled={processingPayment}
+                className={`py-4 px-6 rounded-lg font-semibold bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  processingPayment ? 'cursor-wait' : ''
+                }`}
               >
-                Complete Sale ✓
+                {processingPayment ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  'Complete Sale ✓'
+                )}
               </button>
             </div>
           </div>
