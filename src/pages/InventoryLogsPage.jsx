@@ -316,9 +316,9 @@ const InventoryLogsPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Stock In</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Purchases</p>
               <p className="text-2xl font-bold text-green-600">
-                {logs.filter(log => ['IN', 'PURCHASE', 'TRANSFER_IN', 'RETURN'].includes(log.changeType)).length}
+                {logs.filter(log => log.purchase !== null).length}
               </p>
             </div>
             <IconPlusCircle className="w-7 h-7 text-green-600" />
@@ -328,9 +328,9 @@ const InventoryLogsPage = ({ isDarkMode }) => {
         <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Stock Out</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Sales</p>
               <p className="text-2xl font-bold text-red-600">
-                {logs.filter(log => ['OUT', 'SALE', 'TRANSFER_OUT'].includes(log.changeType)).length}
+                {logs.filter(log => log.sale !== null).length}
               </p>
             </div>
             <IconMinusCircle className="w-7 h-7 text-red-600" />
@@ -342,7 +342,7 @@ const InventoryLogsPage = ({ isDarkMode }) => {
             <div>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Adjustments</p>
               <p className="text-2xl font-bold text-blue-600">
-                {logs.filter(log => log.changeType === 'ADJUSTMENT').length}
+                {logs.filter(log => !log.sale && !log.purchase && log.adjustmentReference).length}
               </p>
             </div>
             <IconAdjustments className={`w-7 h-7 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
