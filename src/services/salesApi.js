@@ -41,6 +41,9 @@ const salesApi = {
   // Update sale
   update: (id, payload) => request(`/api/v1/sales/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   
+  // Confirm sale (for CASH payments)
+  confirm: (id) => request(`/api/v1/sales/${id}/confirm`, { method: 'POST' }),
+  
   // Void/Cancel sale
   void: (id, reason) => request(`/api/v1/sales/${id}/void`, { 
     method: 'PUT', 

@@ -301,10 +301,26 @@ const SalesPOSPage = ({ isDarkMode }) => {
       
       console.log('Sale created successfully:', result)
       
-      // Show success message
-      setSuccessMessage(`Sale #${result.saleId} processed successfully! Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
+      // If payment method is CASH, automatically confirm the sale
+      if (paymentMethod === 'CASH') {
+        try {
+          console.log('Confirming cash sale #', result.saleId)
+          await salesApi.confirm(result.saleId)
+          console.log('Sale confirmed successfully')
+          
+          // Show success message with confirmation
+          setSuccessMessage(`Sale #${result.saleId} confirmed successfully! Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
+        } catch (confirmErr) {
+          console.error('Error confirming sale:', confirmErr)
+          // Sale was created but confirmation failed - show warning
+          setSuccessMessage(`Sale #${result.saleId} created but confirmation failed. Please confirm manually. Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
+        }
+      } else {
+        // For CARD/GCASH, just show success (no confirmation needed)
+        setSuccessMessage(`Sale #${result.saleId} processed successfully! Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
+      }
       
-      // Clear cart and close modal
+      // Clear cart and close modal after 2.5 seconds
       setTimeout(() => {
         setShowPaymentModal(false)
         setCart([])
@@ -313,7 +329,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
         setPaymentMethod('CASH')
         setSuccessMessage('')
         searchInputRef.current?.focus()
-      }, 2000)
+      }, 2500)
 
     } catch (err) {
       console.error('Error processing sale:', err)
