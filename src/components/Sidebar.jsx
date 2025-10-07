@@ -89,19 +89,6 @@ const Sidebar = ({ isDarkMode }) => {
           { name: 'Roles', path: '/roles' }
         ]
       })
-
-      // Reports dropdown
-      items.push({
-        name: 'Reports',
-        icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a2 2 0 002 2h2a2 2 0 002-2V3a2 2 0 012 2v6.5l1.707 1.707A1 1 0 0116 16v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2a1 1 0 01.293-.707L6 13.5V5z" clipRule="evenodd"></path></svg>,
-        dropdown: true,
-        key: 'reports',
-        children: [
-          { name: 'Sales Reports', path: '/sales-reports' },
-          { name: 'Purchase Reports', path: '/purchase-reports' },
-          { name: 'Inventory Reports', path: '/inventory-reports' }
-        ]
-      })
     }
 
     // Sales/POS - available to both admin and staff
@@ -132,6 +119,21 @@ const Sidebar = ({ isDarkMode }) => {
         name: 'Customers',
         path: '/customers',
         icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+      })
+    }
+
+    // Reports dropdown - moved to bottom for admin users
+    if (isAdmin(user)) {
+      items.push({
+        name: 'Reports',
+        icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a2 2 0 002 2h2a2 2 0 002-2V3a2 2 0 012 2v6.5l1.707 1.707A1 1 0 0116 16v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2a1 1 0 01.293-.707L6 13.5V5z" clipRule="evenodd"></path></svg>,
+        dropdown: true,
+        key: 'reports',
+        children: [
+          { name: 'Sales Reports', path: '/sales-reports' },
+          { name: 'Purchase Reports', path: '/purchase-reports' },
+          { name: 'Inventory Reports', path: '/inventory-reports' }
+        ]
       })
     }
 
