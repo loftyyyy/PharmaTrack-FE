@@ -237,6 +237,9 @@ const PurchasesPage = ({ isDarkMode }) => {
     } catch (err) {
       console.error('Error creating purchase:', err)
       setError('Failed to create purchase: ' + err.message)
+      // Close modal on error so user can see the error message
+      setShowAddModal(false)
+      resetForm()
     }
   }
 
@@ -376,6 +379,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       }
     } catch (err) {
       setItemError('Failed to validate batch uniqueness: ' + err.message)
+      // Don't close modal for item errors, just show the error in the form
       return
     }
 
