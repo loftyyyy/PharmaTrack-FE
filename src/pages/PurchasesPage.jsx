@@ -864,7 +864,7 @@ const PurchasesPage = ({ isDarkMode }) => {
       {/* Add Purchase Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto ${
+          <div className={`rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
             <h2 className="text-xl font-bold mb-6">Create New Purchase</h2>
@@ -979,8 +979,8 @@ const PurchasesPage = ({ isDarkMode }) => {
                 {/* Add New Item Form */}
                 <div className="space-y-4 mb-4">
                     {/* First Row: Product and Batch Number */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="lg:col-span-2">
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}>
@@ -995,6 +995,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                                 ? 'bg-gray-600 border-gray-500 text-white'
                                 : 'bg-white border-gray-300 text-gray-900'
                             }`}
+                            style={{ minWidth: '300px' }}
                           >
                             <option value="">Select product</option>
                             {products.map((product, index) => (
@@ -1006,7 +1007,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                           <button
                             type="button"
                             onClick={handleCreateProduct}
-                            className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                            className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
                               isDarkMode
                                 ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
                                 : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
@@ -1042,7 +1043,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                     </div>
 
                     {/* Second Row: Quantity, Unit Price, Purchase Price */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -1107,7 +1108,7 @@ const PurchasesPage = ({ isDarkMode }) => {
                     </div>
 
                     {/* Third Row: Manufacturing Date, Expiry Date, Location */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
