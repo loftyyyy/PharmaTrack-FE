@@ -140,30 +140,30 @@ const Dashboard = ({ isDarkMode }) => {
         </div>
       </div>
 
-      {/* Charts and Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sales Overview */}
-        <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
-          isDarkMode ? 'bg-gray-800' : 'bg-white'
-        }`}>
-          <h3 className={`text-lg font-semibold mb-4 ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>{userIsAdmin ? 'Sales Overview' : 'My Sales Performance'}</h3>
-          <div className="h-64 flex items-center justify-center">
-            <div className={`text-center ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-              </svg>
-              <p>Chart visualization will be here</p>
-              {!userIsAdmin && (
-                <p className="text-sm mt-2">Track your daily sales performance</p>
-              )}
-            </div>
+      {/* Sales Overview - Full Width Row */}
+      <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
+        <h3 className={`text-lg font-semibold mb-4 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>{userIsAdmin ? 'Sales Overview' : 'My Sales Performance'}</h3>
+        <div className="h-80 flex items-center justify-center">
+          <div className={`text-center ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            <svg className="w-20 h-20 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <p className="text-lg">Chart visualization will be here</p>
+            {!userIsAdmin && (
+              <p className="text-sm mt-2">Track your daily sales performance</p>
+            )}
           </div>
         </div>
+      </div>
 
+      {/* Analytics and Products - Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Selling Products / Recent Sales */}
         <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
           isDarkMode ? 'bg-gray-800' : 'bg-white'
@@ -203,10 +203,70 @@ const Dashboard = ({ isDarkMode }) => {
             ))}
           </div>
         </div>
+
+        {/* Revenue Analytics */}
+        <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <h3 className={`text-lg font-semibold mb-4 ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>Revenue Analytics</h3>
+          <div className="space-y-6">
+            {/* Revenue by Period */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className={`text-sm font-medium ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Today</span>
+                <span className={`text-lg font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>{userIsAdmin ? '$12,847' : '$847'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className={`text-sm font-medium ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>This Week</span>
+                <span className={`text-lg font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>{userIsAdmin ? '$89,234' : '$5,234'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className={`text-sm font-medium ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>This Month</span>
+                <span className={`text-lg font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>{userIsAdmin ? '$345,678' : '$23,456'}</span>
+              </div>
+            </div>
+            
+            {/* Performance Metrics */}
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <p className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>+12.5%</p>
+                  <p className={`text-xs ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>vs Last Month</p>
+                </div>
+                <div className="text-center">
+                  <p className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`}>{userIsAdmin ? '156' : '32'}</p>
+                  <p className={`text-xs ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>Transactions</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* System Alerts and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* System Alerts, Quick Actions, and Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Alerts - Only for Admins */}
         {userIsAdmin && (
           <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
@@ -261,7 +321,7 @@ const Dashboard = ({ isDarkMode }) => {
 
         {/* Quick Actions for Staff */}
         {!userIsAdmin && (
-          <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
+          <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 lg:col-span-2 ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
             <h3 className={`text-lg font-semibold mb-4 ${
@@ -313,8 +373,8 @@ const Dashboard = ({ isDarkMode }) => {
 
         {/* Recent Activity */}
         <div className={`p-6 rounded-xl shadow-sm transition-colors duration-300 ${
-          isDarkMode ? 'bg-gray-800' : 'bg-white'
-        }`}>
+          userIsAdmin ? 'lg:col-span-2' : 'lg:col-span-1'
+        } ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <h3 className={`text-lg font-semibold mb-4 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}>{userIsAdmin ? 'Recent Activity' : 'Today\'s Summary'}</h3>
