@@ -47,12 +47,45 @@ const PurchasesPage = ({ isDarkMode }) => {
     location: ''
   })
 
+  // State for product search functionality
+  const [productSearchTerm, setProductSearchTerm] = useState('')
+  const [showProductDropdown, setShowProductDropdown] = useState(false)
+  const [filteredProducts, setFilteredProducts] = useState([])
+
   // Load purchases, suppliers, and products
   useEffect(() => {
     loadPurchases()
     loadSuppliers()
     loadProducts()
   }, [])
+
+  // Filter products based on search term
+  useEffect(() => {
+    if (productSearchTerm.trim() === '') {
+      setFilteredProducts(products.slice(0, 50)) // Show first 50 products by default
+    } else {
+      const filtered = products.filter(product => 
+        product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+        product.sku.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+        product.barcode.toLowerCase().includes(productSearchTerm.toLowerCase())
+      ).slice(0, 100) // Limit to 100 results for performance
+      setFilteredProducts(filtered)
+    }
+  }, [productSearchTerm, products])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProductDropdown && !event.target.closest('.product-search-container')) {
+        setShowProductDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showProductDropdown])
 
   // Auto-clear error and success messages after 5 seconds
   useEffect(() => {
@@ -268,6 +301,8 @@ const PurchasesPage = ({ isDarkMode }) => {
       manufacturingDate: '',
       location: ''
     })
+    setProductSearchTerm('')
+    setShowProductDropdown(false)
   }
 
   const addPurchaseItem = async () => {
@@ -391,11 +426,27 @@ const PurchasesPage = ({ isDarkMode }) => {
     })
   }
 
-  const handleProductChange = (productId) => {
+  const handleProductSearch = (searchTerm) => {
+    setProductSearchTerm(searchTerm)
+    setShowProductDropdown(true)
+  }
+
+  const selectProduct = (product) => {
     setNewPurchaseItem({
       ...newPurchaseItem,
-      productId
+      productId: product.productId
     })
+    setProductSearchTerm(`${product.sku} [${product.barcode}] - ${product.name}`)
+    setShowProductDropdown(false)
+  }
+
+  const clearProductSelection = () => {
+    setNewPurchaseItem({
+      ...newPurchaseItem,
+      productId: ''
+    })
+    setProductSearchTerm('')
+    setShowProductDropdown(false)
   }
 
   const handleCreateProduct = () => {
@@ -986,38 +1037,119 @@ const PurchasesPage = ({ isDarkMode }) => {
                   }`}>
                           Product *
                         </label>
-                        <div className="flex gap-2">
-                          <select
-                            value={newPurchaseItem.productId}
-                            onChange={(e) => handleProductChange(e.target.value)}
-                            className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
-                              isDarkMode
-                                ? 'bg-gray-600 border-gray-500 text-white'
-                                : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                            style={{ minWidth: '300px' }}
-                          >
-                            <option value="">Select product</option>
-                            {products.map((product, index) => (
-                              <option key={product.productId || `product-${index}`} value={product.productId}>
-                                {product.sku} [{product.barcode}] - {product.name}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={handleCreateProduct}
-                            className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
-                              isDarkMode
-                                ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
-                                : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
-                            }`}
-                            title="Create new product"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                          </button>
+                        <div className="relative product-search-container">
+                          <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                              <input
+                                type="text"
+                                value={productSearchTerm}
+                                onChange={(e) => handleProductSearch(e.target.value)}
+                                onFocus={() => setShowProductDropdown(true)}
+                                placeholder="Search products by name, SKU, or barcode..."
+                                className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-medium ${
+                                  isDarkMode
+                                    ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400'
+                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                                }`}
+                                style={{ minWidth: '300px' }}
+                              />
+                              <div className="absolute right-3 top-2.5 flex items-center space-x-1">
+                                {newPurchaseItem.productId && (
+                                  <button
+                                    type="button"
+                                    onClick={clearProductSelection}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    title="Clear selection"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                  </button>
+                                )}
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleCreateProduct}
+                              className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
+                                isDarkMode
+                                  ? 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                                  : 'bg-pharma-teal text-white border-pharma-teal hover:bg-pharma-medium'
+                              }`}
+                              title="Create new product"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                              </svg>
+                            </button>
+                          </div>
+
+                          {/* Product Dropdown */}
+                          {showProductDropdown && (
+                            <div className={`absolute z-50 w-full mt-1 border rounded-lg shadow-lg max-h-80 overflow-y-auto ${
+                              isDarkMode 
+                                ? 'bg-gray-800 border-gray-600' 
+                                : 'bg-white border-gray-300'
+                            }`}>
+                              {filteredProducts.length > 0 ? (
+                                <div className="py-1">
+                                  {filteredProducts.map((product) => (
+                                    <button
+                                      key={product.productId}
+                                      type="button"
+                                      onClick={() => selectProduct(product)}
+                                      className={`w-full text-left px-4 py-3 transition-colors ${
+                                        isDarkMode 
+                                          ? 'text-white hover:bg-gray-700' 
+                                          : 'text-gray-900 hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1 min-w-0">
+                                          <div className={`font-medium text-sm truncate ${
+                                            isDarkMode ? 'text-white' : 'text-gray-900'
+                                          }`}>
+                                            {product.name}
+                                          </div>
+                                          <div className={`text-xs mt-1 ${
+                                            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                          }`}>
+                                            SKU: {product.sku} | Barcode: {product.barcode}
+                                          </div>
+                                        </div>
+                                        <div className={`text-xs ml-2 ${
+                                          isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                                        }`}>
+                                          ID: {product.productId}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                  {filteredProducts.length === 100 && (
+                                    <div className={`px-4 py-2 text-xs text-center border-t ${
+                                      isDarkMode 
+                                        ? 'text-gray-400 border-gray-700' 
+                                        : 'text-gray-500 border-gray-200'
+                                    }`}>
+                                      Showing first 100 results. Refine your search for more specific results.
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className={`px-4 py-3 text-sm text-center ${
+                                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                }`}>
+                                  {productSearchTerm.trim() === '' 
+                                    ? 'Start typing to search products...' 
+                                    : 'No products found matching your search.'
+                                  }
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
