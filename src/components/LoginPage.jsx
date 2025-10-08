@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 
 const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
-  const { login, demoLogin } = useAuth()
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -178,22 +178,6 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
     return '❌ Unable to sign in. Please check your credentials and try again.'
   }
 
-  // Handle demo login
-  const handleDemoLogin = async () => {
-    setError('')
-    setIsSubmitting(true)
-
-    try {
-      const result = demoLogin()
-      if (!result.success) {
-        setError('Demo mode is temporarily unavailable. Please try the regular login.')
-      }
-    } catch {
-      setError('Demo mode is temporarily unavailable. Please try the regular login.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -334,15 +318,17 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
           </div>
 
           <div className="space-y-3">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 shadow-lg ${
-                isSubmitting
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:from-pharma-medium hover:to-pharma-teal transform hover:scale-105 hover:shadow-xl'
-              }`}
-            >
+             <button
+               type="submit"
+               disabled={isSubmitting}
+               className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 shadow-lg border-2 ${
+                 isSubmitting
+                   ? 'bg-gray-400 border-gray-400 cursor-not-allowed text-gray-600'
+                   : isDarkMode
+                     ? 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white border-pharma-teal hover:from-pharma-medium hover:to-pharma-teal hover:border-pharma-medium transform hover:scale-105 hover:shadow-xl hover:shadow-pharma-teal/25'
+                     : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white border-pharma-teal hover:from-pharma-medium hover:to-pharma-teal hover:border-pharma-medium transform hover:scale-105 hover:shadow-xl hover:shadow-pharma-teal/25'
+               }`}
+             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -356,35 +342,9 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={isSubmitting}
-              className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 border-2 ${
-                isSubmitting
-                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                  : isDarkMode
-                    ? 'border-pharma-medium text-pharma-medium hover:bg-pharma-medium hover:text-white'
-                    : 'border-pharma-teal text-pharma-teal hover:bg-pharma-teal hover:text-white'
-              }`}
-            >
-              Demo Login
-            </button>
           </div>
         </form>
 
-        {/* Demo Info */}
-        <div className={`mt-6 p-4 rounded-lg transition-colors duration-300 ${
-          isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'
-        }`}>
-          <p className={`text-xs text-center transition-colors duration-200 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            <strong>Demo Credentials:</strong><br />
-            Username: admin<br />
-            Password: password123
-          </p>
-        </div>
 
         {/* Theme Toggle for Login Page */}
         <div className="mt-6 flex justify-center">
