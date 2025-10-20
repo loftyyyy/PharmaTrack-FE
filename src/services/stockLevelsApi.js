@@ -3,8 +3,6 @@
 
 import { productBatchesApi } from './productBatchesApi'
 
-const BASE_URL = 'http://localhost:8080/api/v1'
-
 export const stockLevelsApi = {
   // Get all stock levels with aggregated data
   getAll: async () => {

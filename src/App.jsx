@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -76,7 +76,11 @@ const deriveTitleFromPath = (path) => {
 
 // Protected App Component
 const ProtectedApp = () => {
+  console.log('🔄 ProtectedApp component rendering...')
+  
   const { user, logout, isAuthenticated, loading } = useAuth()
+  console.log('✅ useAuth hook called successfully')
+  
   const location = useLocation()
   
   // Debug logging for user data in App component
@@ -84,6 +88,7 @@ const ProtectedApp = () => {
   console.log('App component user:', user)
   console.log('App user.role:', user?.role)
   console.log('App user.roleName:', user?.roleName)
+  
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   
   // Initialize dark mode based on system preference
@@ -408,12 +413,59 @@ const ProtectedApp = () => {
 // Main App Component with AuthProvider and Router
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
+    <AuthProvider>
+      <BrowserRouter>
         <ProtectedApp />
-      </AuthProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
-export default App
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('🚨 ErrorBoundary caught an error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-red-50">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Application Error</h1>
+            <p className="text-red-500">There was an error loading the application.</p>
+            <p className="text-sm text-gray-500 mt-2">Check the console for details.</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+// Wrapped App with Error Boundary
+const AppWithErrorBoundary = () => {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  )
+}
+
+export default AppWithErrorBoundary

@@ -1,4 +1,5 @@
-// API service for Spring Boot backend communication
+// Centralized API service for Spring Boot backend communication
+// This service handles all authentication, token refresh, and API requests
 
 import { API_BASE_URL } from '../utils/config'
 
@@ -7,6 +8,8 @@ class ApiService {
     this.baseURL = API_BASE_URL
     this.logoutCallback = null
     this.refreshTokenCallback = null
+    this.isRefreshing = false
+    this.failedQueue = []
   }
 
   // Set logout callback to be called when token expires
@@ -22,17 +25,26 @@ class ApiService {
   // Get auth headers from localStorage
   getAuthHeaders() {
     const accessToken = localStorage.getItem('pharma_access_token')
-    console.log('🔑 API Service - Getting auth headers:', {
-      accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'NONE',
-      hasAuth: !!accessToken
-    })
     return {
       'Content-Type': 'application/json',
       ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
     }
   }
 
-  // Generic request method
+  // Process failed queue after token refresh
+  processQueue(error, token = null) {
+    this.failedQueue.forEach(({ resolve, reject }) => {
+      if (error) {
+        reject(error)
+      } else {
+        resolve(token)
+      }
+    })
+    
+    this.failedQueue = []
+  }
+
+  // Generic request method with proper token refresh handling
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
     const config = {
@@ -48,26 +60,22 @@ class ApiService {
       
       // Handle token expiration (401 Unauthorized)
       if (response.status === 401) {
-        console.warn('Access token expired or invalid, attempting refresh...')
+        // If we're already refreshing, queue this request
+        if (this.isRefreshing) {
+          return new Promise((resolve, reject) => {
+            this.failedQueue.push({ resolve, reject })
+          }).then(() => {
+            return this.request(endpoint, options)
+          })
+        }
+
+        this.isRefreshing = true
         
-        // Try to refresh token first
+        try {
+          // Try to refresh token
         if (this.refreshTokenCallback) {
-          try {
-            console.log('🔄 Attempting token refresh due to 401 response...')
-            // Wait for token refresh to complete
             await this.refreshTokenCallback()
             
-            // Longer delay to ensure localStorage and state are updated
-            await new Promise(resolve => setTimeout(resolve, 300))
-            
-            // Verify we have a new token
-            const newToken = localStorage.getItem('pharma_access_token')
-            if (!newToken) {
-              console.error('❌ No new token found after refresh')
-              throw new Error('Token refresh failed - no new token')
-            }
-            
-            console.log('🔄 Retrying request with new token...')
             // Retry the original request with new token
             const retryConfig = {
               ...config,
@@ -79,26 +87,32 @@ class ApiService {
             const retryResponse = await fetch(url, retryConfig)
             
             if (retryResponse.ok) {
-              console.log('✅ Request retry successful after token refresh')
+              this.processQueue(null, retryResponse)
               return retryResponse
             } else if (retryResponse.status === 401) {
-              console.warn('❌ Still getting 401 after token refresh - tokens may be invalid')
+              // Still getting 401 after refresh - tokens are invalid
+              this.processQueue(new Error('Authentication failed after token refresh'), null)
               throw new Error('Authentication failed after token refresh')
             } else {
-              console.warn('❌ Request retry failed after token refresh:', retryResponse.status)
+              this.processQueue(null, retryResponse)
+              return retryResponse
             }
-          } catch (refreshError) {
-            console.error('❌ Token refresh failed:', refreshError)
-            throw refreshError
+          } else {
+            // No refresh callback available
+            this.processQueue(new Error('No refresh token callback'), null)
+            throw new Error('No refresh token callback available')
           }
-        }
-        
-        // If refresh failed or no callback, trigger logout
-        console.warn('Token refresh failed, triggering auto logout')
+        } catch (refreshError) {
+          this.processQueue(refreshError, null)
+          
+          // If refresh failed, trigger logout
         if (this.logoutCallback) {
           this.logoutCallback('Session expired. Please log in again.')
         }
         throw new Error('Session expired. Please log in again.')
+        } finally {
+          this.isRefreshing = false
+        }
       }
       
       // Handle different response types
@@ -222,94 +236,149 @@ class ApiService {
     login: (credentials) => this.post('/auth/login', credentials),
     register: (userData) => this.post('/auth/register', userData),
     logout: () => this.post('/auth/logout'),
-    refresh: () => this.post('/auth/refresh'),
+    refresh: (refreshToken) => {
+      // Properly format the refresh token request according to backend expectations
+      return this.post('/auth/refresh', { refreshToken })
+    },
     forgotPassword: (email) => this.post('/auth/forgot-password', { email }),
     resetPassword: (token, password) => this.post('/auth/reset-password', { token, password }),
   }
 
   // User management endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/users")
   users = {
-    getProfile: () => this.get('/v1/users/profile'),
-    updateProfile: (userData) => this.put('/v1/users/profile', userData),
-    getAll: () => this.get('/v1/users'),
-    getById: (id) => this.get(`/v1/users/${id}`),
-    create: (userData) => this.post('/v1/users', userData), // { username, password, role }
-    update: (id, userData) => this.put(`/v1/users/${id}`, userData),
-    delete: (id) => this.delete(`/v1/users/${id}`),
+    getProfile: () => this.get('/api/v1/users/me'),
+    getAll: () => this.get('/api/v1/users'),
+    getById: (id) => this.get(`/api/v1/users/${id}`),
+    create: (userData) => this.post('/api/v1/users/signup', userData),
+    update: (id, userData) => this.put(`/api/v1/users/${id}`, userData),
   }
 
-  // Customer/Orders endpoints (v1 API - requires Authorization)
+  // Customer endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/customers")
   customers = {
-    getAll: (params) => {
-      const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-      return this.get(`/v1/customers${queryString}`)
-    },
-    getById: (id) => this.get(`/v1/customers/${id}`),
-    create: (customerData) => this.post('/v1/customers', customerData),
-    update: (id, customerData) => this.put(`/v1/customers/${id}`, customerData),
-    delete: (id) => this.delete(`/v1/customers/${id}`),
-    getOrders: (id) => this.get(`/v1/customers/${id}/orders`),
-  }
-
-  // Orders endpoints (v1 API - requires Authorization)
-  orders = {
-    getAll: (params) => {
-      const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-      return this.get(`/v1/orders${queryString}`)
-    },
-    getById: (id) => this.get(`/v1/orders/${id}`),
-    create: (orderData) => this.post('/v1/orders', orderData),
-    update: (id, orderData) => this.put(`/v1/orders/${id}`, orderData),
-    delete: (id) => this.delete(`/v1/orders/${id}`),
-    updateStatus: (id, status) => this.patch(`/v1/orders/${id}/status`, { status }),
-    getByStatus: (status) => this.get(`/v1/orders/status/${status}`),
-    getByCustomer: (customerId) => this.get(`/v1/orders/customer/${customerId}`),
+    getAll: () => this.get('/api/v1/customers'),
+    getById: (id) => this.get(`/api/v1/customers/${id}`),
+    getWalkIn: () => this.get('/api/v1/customers/walkIn'),
+    getActive: () => this.get('/api/v1/customers/active'),
+    create: (customerData) => this.post('/api/v1/customers/create', customerData),
+    update: (id, customerData) => this.put(`/api/v1/customers/${id}`, customerData),
+    deactivate: (id) => this.put(`/api/v1/customers/deactivate/${id}`),
+    activate: (id) => this.put(`/api/v1/customers/activate/${id}`),
   }
 
   // Suppliers endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/suppliers")
   suppliers = {
-    getAll: () => this.get('/v1/suppliers'),
-    getById: (id) => this.get(`/v1/suppliers/${id}`),
-    create: (supplierData) => this.post('/v1/suppliers', supplierData),
-    update: (id, supplierData) => this.put(`/v1/suppliers/${id}`, supplierData),
-    delete: (id) => this.delete(`/v1/suppliers/${id}`),
+    getAll: () => this.get('/api/v1/suppliers'),
+    getById: (id) => this.get(`/api/v1/suppliers/${id}`),
+    create: (supplierData) => this.post('/api/v1/suppliers/create', supplierData),
+    update: (id, supplierData) => this.put(`/api/v1/suppliers/${id}`, supplierData),
   }
 
-  // Dashboard/Analytics endpoints (v1 API - requires Authorization)
-  dashboard = {
-    getKPIs: () => this.get('/v1/dashboard/kpis'),
-    getSalesOverview: (period = '30d') => this.get(`/v1/dashboard/sales?period=${period}`),
-    getTopProducts: (limit = 10) => this.get(`/v1/dashboard/top-products?limit=${limit}`),
-    getRecentActivity: (limit = 20) => this.get(`/v1/dashboard/activity?limit=${limit}`),
-    getAlerts: () => this.get('/v1/dashboard/alerts'),
+  // Products endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/products")
+  products = {
+    getAll: () => this.get('/api/v1/products'),
+    getById: (id) => this.get(`/api/v1/products/${id}`),
+    create: (productData) => this.post('/api/v1/products/create', productData),
+    update: (id, productData) => this.put(`/api/v1/products/${id}`, productData),
   }
 
-  // Reports endpoints (v1 API - requires Authorization)
-  reports = {
-    getSalesReport: (params) => {
-      const queryString = '?' + new URLSearchParams(params).toString()
-      return this.get(`/v1/reports/sales${queryString}`)
-    },
-    getInventoryReport: (params) => {
-      const queryString = '?' + new URLSearchParams(params).toString()
-      return this.get(`/v1/reports/inventory${queryString}`)
-    },
-    getProductReport: (params) => {
-      const queryString = '?' + new URLSearchParams(params).toString()
-      return this.get(`/v1/reports/products${queryString}`)
-    },
-    getCustomerReport: (params) => {
-      const queryString = '?' + new URLSearchParams(params).toString()
-      return this.get(`/v1/reports/customers${queryString}`)
-    },
-    getExpiryReport: () => this.get('/v1/reports/expiry'),
-    downloadReport: async (reportType, params) => {
-      const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-      const response = await this.request(`/v1/reports/${reportType}/download${queryString}`, {
-        method: 'GET',
-      })
-      return response
-    },
+  // Categories endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/categories")
+  categories = {
+    getAll: () => this.get('/api/v1/categories'),
+    getById: (id) => this.get(`/api/v1/categories/${id}`),
+    create: (categoryData) => this.post('/api/v1/categories/create', categoryData),
+    update: (id, categoryData) => this.put(`/api/v1/categories/${id}`, categoryData),
+  }
+
+  // Sales endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/sales")
+  sales = {
+    getAll: () => this.get('/api/v1/sales'),
+    getById: (id) => this.get(`/api/v1/sales/${id}`),
+    create: (saleData) => this.post('/api/v1/sales/create', saleData),
+    confirm: (id) => this.post(`/api/v1/sales/${id}/confirm`),
+    void: (id, reason) => this.post(`/api/v1/sales/${id}/void`, { reason }),
+    cancel: (id) => this.post(`/api/v1/sales/${id}/cancel`),
+  }
+
+  // Purchases endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/purchases")
+  purchases = {
+    getAll: () => this.get('/api/v1/purchases'),
+    getById: (id) => this.get(`/api/v1/purchases/${id}`),
+    create: (purchaseData) => this.post('/api/v1/purchases/create', purchaseData),
+    update: (id, purchaseData) => this.put(`/api/v1/purchases/${id}`, purchaseData),
+    confirm: (id) => this.put(`/api/v1/purchases/${id}/confirm`),
+    cancel: (id) => this.put(`/api/v1/purchases/${id}/cancel`),
+  }
+
+  // Purchase Items endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/purchaseItems")
+  purchaseItems = {
+    getAll: () => this.get('/api/v1/purchaseItems'),
+    getById: (id) => this.get(`/api/v1/purchaseItems/${id}`),
+    update: (id, itemData) => this.put(`/api/v1/purchaseItems/${id}`, itemData),
+    delete: (id) => this.delete(`/api/v1/purchaseItems/${id}`),
+  }
+
+  // Product Batches endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/productBatches")
+  productBatches = {
+    getAll: () => this.get('/api/v1/productBatches'),
+    getById: (id) => this.get(`/api/v1/productBatches/${id}`),
+    getByProductId: (productId) => this.get(`/api/v1/productBatches/${productId}/batches`),
+    getEarliest: () => this.get('/api/v1/productBatches/earliest'),
+    update: (id, batchData) => this.put(`/api/v1/productBatches/${id}`, batchData),
+    checkExists: (payload) => this.post('/api/v1/productBatches/check', payload),
+  }
+
+  // Product Suppliers endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/productSuppliers")
+  productSuppliers = {
+    getAll: () => this.get('/api/v1/productSuppliers'),
+    getById: (id) => this.get(`/api/v1/productSuppliers/${id}`),
+    create: (productSupplierData) => this.post('/api/v1/productSuppliers/create', productSupplierData),
+    update: (id, productSupplierData) => this.put(`/api/v1/productSuppliers/${id}`, productSupplierData),
+  }
+
+  // Roles endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/roles")
+  roles = {
+    getAll: () => this.get('/api/v1/roles'),
+    getById: (id) => this.get(`/api/v1/roles/${id}`),
+    getUserCount: (roleId) => this.get(`/api/v1/roles/${roleId}/users/count`),
+    create: (roleData) => this.post('/api/v1/roles/create', roleData),
+    update: (id, roleData) => this.put(`/api/v1/roles/${id}`, roleData),
+  }
+
+  // Stock Adjustments endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/stockAdjustments")
+  stockAdjustments = {
+    getAll: () => this.get('/api/v1/stockAdjustments'),
+    getById: (id) => this.get(`/api/v1/stockAdjustments/${id}`),
+    create: (adjustmentData) => this.post('/api/v1/stockAdjustments/create', adjustmentData),
+  }
+
+  // Inventory Logs endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/inventoryLogs")
+  inventoryLogs = {
+    getAll: () => this.get('/api/v1/inventoryLogs/'), // Note: trailing slash for @RequestMapping("/")
+    getById: (id) => this.get(`/api/v1/inventoryLogs/${id}`),
+    create: (logData) => this.post('/api/v1/inventoryLogs/create', logData),
+  }
+
+  // Low Stock Alerts endpoints (v1 API - requires Authorization)
+  // Backend: @RequestMapping("/api/v1/alerts")
+  alerts = {
+    getCount: () => this.get('/api/v1/alerts/count'),
+    getUnresolved: () => this.get('/api/v1/alerts/unresolved'),
+    getResolved: () => this.get('/api/v1/alerts/resolved'),
+    resolve: (id) => this.put(`/api/v1/alerts/${id}/resolve`),
+    createOrUpdate: () => this.post('/api/v1/alerts/createOrUpdate'),
   }
 }
 
@@ -317,13 +386,34 @@ class ApiService {
 const apiService = new ApiService()
 export default apiService
 
+// Helper function to create API methods for individual services
+export const createApiMethods = (basePath) => ({
+  getAll: (params) => {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return apiService.get(`${basePath}${queryString}`)
+  },
+  getById: (id) => apiService.get(`${basePath}/${id}`),
+  create: (data) => apiService.post(`${basePath}`, data),
+  update: (id, data) => apiService.put(`${basePath}/${id}`, data),
+  delete: (id) => apiService.delete(`${basePath}/${id}`),
+  patch: (id, data) => apiService.patch(`${basePath}/${id}`, data),
+})
+
 // Export individual service categories for convenience
 export const {
   auth,
   users,
   customers,
-  orders,
   suppliers,
-  dashboard,
-  reports,
+  products,
+  categories,
+  sales,
+  purchases,
+  purchaseItems,
+  productBatches,
+  productSuppliers,
+  roles,
+  stockAdjustments,
+  inventoryLogs,
+  alerts,
 } = apiService
