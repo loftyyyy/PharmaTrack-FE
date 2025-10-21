@@ -293,7 +293,7 @@ const StockLevelsPage = ({ isDarkMode }) => {
                             'bg-green-500'
                           }`}
                           style={{ 
-                            width: `${Math.min((item.currentStock / Math.max(item.minStock, 1)) * 100, 100)}%` 
+                            width: `${Math.min((item.currentStock / Math.max(item.minStock * 1.5, 1)) * 100, 100)}%` 
                           }}
                         ></div>
                       </div>
