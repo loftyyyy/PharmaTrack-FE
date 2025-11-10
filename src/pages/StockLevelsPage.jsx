@@ -50,9 +50,26 @@ const StockLevelsPage = ({ isDarkMode }) => {
   }
 
   // Calculate stock bar width percentage (0-100%)
-  // Uses minStock * 2 as the "full" reference point for better visualization
+  // Shows urgency visually: low stock appears as a small bar, normal stock appears fuller
   const getStockBarWidth = (item) => {
-    const maxReference = Math.max(item.minStock * 2, 1) // Use 2x minStock as full reference
+    if (item.currentStock === 0) return 0
+    
+    // When stock is at or below minimum, show it as visually low (20-25% when at minimum)
+    if (item.currentStock <= item.minStock) {
+      // At minimum stock = 25% of bar (visually urgent)
+      // Below minimum = proportionally lower (down to 5% when very low)
+      const minStockPercentage = 25 // Show minimum stock as 25% of bar
+      if (item.currentStock === item.minStock) {
+        return minStockPercentage
+      }
+      // When below minimum, scale down from 25% to 5% based on how low it is
+      const ratio = item.currentStock / item.minStock
+      return Math.max(5, minStockPercentage * ratio) // Minimum 5% when very low
+    }
+    
+    // When stock is above minimum, use minStock * 3 as reference for better visualization
+    // This makes normal stock appear fuller (e.g., 1.5x minStock = 50%, 2x minStock = 66%, 3x minStock = 100%)
+    const maxReference = Math.max(item.minStock * 3, 1)
     const percentage = (item.currentStock / maxReference) * 100
     return Math.min(Math.max(percentage, 0), 100) // Clamp between 0 and 100
   }
