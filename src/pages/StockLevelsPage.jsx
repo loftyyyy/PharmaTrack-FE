@@ -54,15 +54,15 @@ const StockLevelsPage = ({ isDarkMode }) => {
   const getStockBarWidth = (item) => {
     if (item.currentStock === 0) return 0
     
-    // When stock is at or below minimum, show it as visually low (20-25% when at minimum)
+    // When stock is at or below minimum, show it as visually low (10% when at minimum - critical zone)
     if (item.currentStock <= item.minStock) {
-      // At minimum stock = 25% of bar (visually urgent)
+      // At minimum stock = 10% of bar (critical zone - visually urgent)
       // Below minimum = proportionally lower (down to 5% when very low)
-      const minStockPercentage = 25 // Show minimum stock as 25% of bar
+      const minStockPercentage = 10 // Show minimum stock as 10% of bar (critical zone)
       if (item.currentStock === item.minStock) {
         return minStockPercentage
       }
-      // When below minimum, scale down from 25% to 5% based on how low it is
+      // When below minimum, scale down from 10% to 5% based on how low it is
       const ratio = item.currentStock / item.minStock
       return Math.max(5, minStockPercentage * ratio) // Minimum 5% when very low
     }
@@ -79,8 +79,8 @@ const StockLevelsPage = ({ isDarkMode }) => {
     const status = getStockStatus(item)
     if (status === 'out') return 'bg-red-500'
     if (status === 'low') {
-      // Use orange/amber for more urgency when at or below minimum
-      if (item.currentStock === item.minStock) return 'bg-orange-500'
+      // Use red for critical zone when stock equals minimum
+      if (item.currentStock === item.minStock) return 'bg-red-500'
       return 'bg-yellow-500'
     }
     return 'bg-green-500'
@@ -333,11 +333,11 @@ const StockLevelsPage = ({ isDarkMode }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         status === 'out' ? 'bg-red-100 text-red-800' :
-                        status === 'low' && item.currentStock === item.minStock ? 'bg-orange-100 text-orange-800' :
+                        status === 'low' && item.currentStock === item.minStock ? 'bg-red-100 text-red-800' :
                         status === 'low' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800'
                       }`}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                        {status === 'low' && item.currentStock === item.minStock ? 'Critical' : status.charAt(0).toUpperCase() + status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
