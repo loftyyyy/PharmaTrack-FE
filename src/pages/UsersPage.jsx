@@ -321,11 +321,7 @@ const UsersPage = ({ isDarkMode }) => {
         <div className="flex gap-3">
           <button
             onClick={handleAddUserClick}
-            className={`px-4 py-2 rounded-lg border transition-all duration-200 hover:shadow-lg ${
-              isDarkMode
-                ? 'bg-pharma-teal border-pharma-teal text-white hover:bg-teal-600'
-                : 'bg-pharma-teal border-pharma-teal text-white hover:bg-teal-600'
-            }`}
+            className="px-4 py-2 rounded-lg border transition-all duration-200 hover:shadow-lg bg-gradient-to-r from-green-500 to-green-600 border-green-500 text-white hover:from-green-600 hover:to-green-700"
           >
             <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
@@ -884,7 +880,7 @@ const UsersPage = ({ isDarkMode }) => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors bg-gradient-to-r from-pharma-teal to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 hover:shadow-lg ${
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg ${
                     submitting ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
