@@ -31,6 +31,19 @@ const SalesPOSPage = ({ isDarkMode }) => {
   const amountInputRef = useRef(null)
   const customerSearchInputRef = useRef(null)
 
+  // Function to refresh product batches
+  const refreshProductBatches = useCallback(async () => {
+    try {
+      const batches = await productBatchesApi.getEarliest()
+      setProductBatches(batches)
+      console.log('Product batches refreshed')
+      return batches
+    } catch (err) {
+      console.error('Error refreshing product batches:', err)
+      return null
+    }
+  }, [])
+
   // Fetch earliest product batches and walk-in customer
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -100,7 +113,10 @@ const SalesPOSPage = ({ isDarkMode }) => {
   }, [showCustomerModal])
 
   const addToCart = (batch, quantity = 1) => {
-    if (batch.quantity <= 0) {
+    // Get the latest batch data from productBatches state to ensure we have current stock
+    const latestBatch = productBatches.find(b => b.productBatchId === batch.productBatchId) || batch
+    
+    if (latestBatch.quantity <= 0) {
       showNotification('Product batch is out of stock!', 'error')
       return
     }
@@ -108,17 +124,17 @@ const SalesPOSPage = ({ isDarkMode }) => {
     const existingItem = cart.find(item => item.productBatchId === batch.productBatchId)
     if (existingItem) {
       const newQuantity = existingItem.cartQuantity + quantity
-      if (newQuantity > batch.quantity) {
+      if (newQuantity > latestBatch.quantity) {
         showNotification('Cannot add more items than available in stock!', 'error')
         return
       }
       setCart(cart.map(item => 
         item.productBatchId === batch.productBatchId 
-          ? { ...item, cartQuantity: newQuantity }
+          ? { ...item, cartQuantity: newQuantity, ...latestBatch }
           : item
       ))
     } else {
-      setCart([...cart, { ...batch, cartQuantity: quantity }])
+      setCart([...cart, { ...latestBatch, cartQuantity: quantity }])
     }
     
     // Clear search after adding
@@ -132,15 +148,27 @@ const SalesPOSPage = ({ isDarkMode }) => {
       return
     }
 
-    const batch = productBatches.find(b => b.productBatchId === batchId) || cart.find(item => item.productBatchId === batchId)
-    if (newQuantity > batch.quantity) {
+    // Get the latest batch data from productBatches state to ensure we have current stock
+    const latestBatch = productBatches.find(b => b.productBatchId === batchId)
+    const cartItem = cart.find(item => item.productBatchId === batchId)
+    const batch = latestBatch || cartItem
+    
+    if (!batch) {
+      showNotification('Product batch not found!', 'error')
+      return
+    }
+
+    // Use the latest stock quantity from productBatches if available
+    const availableStock = latestBatch ? latestBatch.quantity : batch.quantity
+    if (newQuantity > availableStock) {
       showNotification('Cannot exceed available stock!', 'error')
       return
     }
 
+    // Update cart with latest batch data if available
     setCart(cart.map(item => 
       item.productBatchId === batchId 
-        ? { ...item, cartQuantity: newQuantity }
+        ? { ...item, cartQuantity: newQuantity, ...(latestBatch ? latestBatch : {}) }
         : item
     ))
     setEditingQuantity(null)
@@ -235,8 +263,17 @@ const SalesPOSPage = ({ isDarkMode }) => {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [cart, parkTransaction])
 
-  const loadParkedTransaction = (transaction) => {
-    setCart(transaction.cart)
+  const loadParkedTransaction = async (transaction) => {
+    // Refresh batches first to ensure we have latest stock levels
+    const latestBatches = await refreshProductBatches()
+    
+    // Update cart items with latest batch data
+    const updatedCart = transaction.cart.map(cartItem => {
+      const latestBatch = latestBatches?.find(b => b.productBatchId === cartItem.productBatchId)
+      return latestBatch ? { ...cartItem, ...latestBatch } : cartItem
+    })
+    
+    setCart(updatedCart)
     setSelectedCustomer(transaction.customer)
     setParkedTransactions(parkedTransactions.filter(t => t.id !== transaction.id))
     setShowParkedModal(false)
@@ -308,14 +345,21 @@ const SalesPOSPage = ({ isDarkMode }) => {
           await salesApi.confirm(result.saleId)
           console.log('Sale confirmed successfully')
           
+          // Refresh product batches to get updated stock levels
+          await refreshProductBatches()
+          
           // Show success message with confirmation
           setSuccessMessage(`Sale #${result.saleId} confirmed successfully! Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
         } catch (confirmErr) {
           console.error('Error confirming sale:', confirmErr)
+          // Even if confirmation fails, refresh batches since sale was created
+          await refreshProductBatches()
           // Sale was created but confirmation failed - show warning
           setSuccessMessage(`Sale #${result.saleId} created but confirmation failed. Please confirm manually. Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
         }
       } else {
+        // For CARD/GCASH, refresh batches after sale creation
+        await refreshProductBatches()
         // For CARD/GCASH, just show success (no confirmation needed)
         setSuccessMessage(`Sale #${result.saleId} processed successfully! Total: ₱${Number(result.grandTotal).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`)
       }

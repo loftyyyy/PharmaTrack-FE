@@ -45,17 +45,45 @@ const StockLevelsPage = ({ isDarkMode }) => {
 
   const getStockStatus = (item) => {
     if (item.currentStock === 0) return 'out'
-    if (item.currentStock < item.minStock) return 'low'
+    if (item.currentStock <= item.minStock) return 'low'
     return 'normal'
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'normal': return 'bg-green-100 text-green-800'
-      case 'low': return 'bg-yellow-100 text-yellow-800'
-      case 'out': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+  // Calculate stock bar width percentage (0-100%)
+  // Shows urgency visually: low stock appears as a small bar, normal stock appears fuller
+  const getStockBarWidth = (item) => {
+    if (item.currentStock === 0) return 0
+    
+    // When stock is at or below minimum, show it as visually low (10% when at minimum - critical zone)
+    if (item.currentStock <= item.minStock) {
+      // At minimum stock = 10% of bar (critical zone - visually urgent)
+      // Below minimum = proportionally lower (down to 5% when very low)
+      const minStockPercentage = 10 // Show minimum stock as 10% of bar (critical zone)
+      if (item.currentStock === item.minStock) {
+        return minStockPercentage
+      }
+      // When below minimum, scale down from 10% to 5% based on how low it is
+      const ratio = item.currentStock / item.minStock
+      return Math.max(5, minStockPercentage * ratio) // Minimum 5% when very low
     }
+    
+    // When stock is above minimum, use minStock * 3 as reference for better visualization
+    // This makes normal stock appear fuller (e.g., 1.5x minStock = 50%, 2x minStock = 66%, 3x minStock = 100%)
+    const maxReference = Math.max(item.minStock * 3, 1)
+    const percentage = (item.currentStock / maxReference) * 100
+    return Math.min(Math.max(percentage, 0), 100) // Clamp between 0 and 100
+  }
+
+  // Get stock bar color based on urgency level
+  const getStockBarColor = (item) => {
+    const status = getStockStatus(item)
+    if (status === 'out') return 'bg-red-500'
+    if (status === 'low') {
+      // Use red for critical zone when stock equals minimum
+      if (item.currentStock === item.minStock) return 'bg-red-500'
+      return 'bg-yellow-500'
+    }
+    return 'bg-green-500'
   }
 
   const filteredItems = stockItems.filter(item => {
@@ -287,13 +315,9 @@ const StockLevelsPage = ({ isDarkMode }) => {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                         <div
-                          className={`h-2 rounded-full ${
-                            status === 'out' ? 'bg-red-500' :
-                            status === 'low' ? 'bg-yellow-500' :
-                            'bg-green-500'
-                          }`}
+                          className={`h-2 rounded-full ${getStockBarColor(item)}`}
                           style={{ 
-                            width: `${Math.min((item.currentStock / Math.max(item.minStock, 1)) * 100, 100)}%` 
+                            width: `${getStockBarWidth(item)}%` 
                           }}
                         ></div>
                       </div>
@@ -307,8 +331,13 @@ const StockLevelsPage = ({ isDarkMode }) => {
                       <div className="text-sm font-medium">{item.location}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        status === 'out' ? 'bg-red-100 text-red-800' :
+                        status === 'low' && item.currentStock === item.minStock ? 'bg-red-100 text-red-800' :
+                        status === 'low' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {status === 'low' && item.currentStock === item.minStock ? 'Critical' : status.charAt(0).toUpperCase() + status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">

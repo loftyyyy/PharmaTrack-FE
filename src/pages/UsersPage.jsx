@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import usersApi from '../services/usersApi'
+import rolesApi from '../services/rolesApi'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 const UsersPage = ({ isDarkMode }) => {
@@ -11,8 +12,22 @@ const UsersPage = ({ isDarkMode }) => {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [loadingError, setLoadingError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [showUserModal, setShowUserModal] = useState(false)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [availableRoles, setAvailableRoles] = useState([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+  
+  // Form data for new user
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    roleName: ''
+  })
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
@@ -45,6 +60,21 @@ const UsersPage = ({ isDarkMode }) => {
     }
   }
 
+  // Fetch roles from API
+  const fetchRoles = async () => {
+    try {
+      setLoadingRoles(true)
+      const data = await rolesApi.getAll()
+      console.log('📥 Roles data:', data)
+      setAvailableRoles(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Failed to fetch roles:', error)
+      setAvailableRoles([])
+    } finally {
+      setLoadingRoles(false)
+    }
+  }
+
   // Load data on component mount
   useEffect(() => {
     // Only load data if user is authenticated
@@ -53,12 +83,102 @@ const UsersPage = ({ isDarkMode }) => {
       return
     }
     fetchUsers()
+    fetchRoles()
   }, [isAuthenticated])
 
   // Handle user click
   const handleUserClick = (user) => {
     setSelectedUser(user)
     setShowUserModal(true)
+  }
+
+  // Handle add user button click
+  const handleAddUserClick = () => {
+    setFormData({
+      username: '',
+      email: '',
+      password: '',
+      roleName: ''
+    })
+    setSubmitError(null)
+    setSuccess(null)
+    setShowAddUserModal(true)
+  }
+
+  // Handle form submission
+  const handleAddUserSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError(null)
+    setSuccess(null)
+
+    try {
+      // Validate form data
+      if (!formData.username || !formData.email || !formData.password || !formData.roleName) {
+        setSubmitError('All fields are required')
+        setSubmitting(false)
+        return
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email)) {
+        setSubmitError('Invalid email address')
+        setSubmitting(false)
+        return
+      }
+
+      // Validate password length
+      if (formData.password.length < 6) {
+        setSubmitError('Password must be at least 6 characters')
+        setSubmitting(false)
+        return
+      }
+
+      // Create user
+      await usersApi.create({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        roleName: formData.roleName
+      })
+
+      // Set success message
+      setSuccess(`User "${formData.username}" created successfully!`)
+
+      // Close modal and refresh users list
+      setShowAddUserModal(false)
+      setFormData({
+        username: '',
+        email: '',
+        password: '',
+        roleName: ''
+      })
+      await fetchUsers()
+
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error) {
+      console.error('Failed to create user:', error)
+      setSubmitError(error.message || 'Failed to create user. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle modal close
+  const handleCloseAddUserModal = () => {
+    if (!submitting) {
+      setShowAddUserModal(false)
+      setFormData({
+        username: '',
+        email: '',
+        password: '',
+        roleName: ''
+      })
+      setSubmitError(null)
+      setSuccess(null)
+    }
   }
 
 
@@ -208,24 +328,35 @@ const UsersPage = ({ isDarkMode }) => {
             View and manage system users
           </p>
         </div>
-        <button
-          onClick={fetchUsers}
-          disabled={loading || refreshing}
-          className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
-            loading || refreshing
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:shadow-lg'
-          } ${
-            isDarkMode
-              ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
-              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          <svg className={`w-5 h-5 inline mr-2 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-          </svg>
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleAddUserClick}
+            className="px-4 py-2 rounded-lg border transition-all duration-200 hover:shadow-lg bg-gradient-to-r from-green-500 to-green-600 border-green-500 text-white hover:from-green-600 hover:to-green-700"
+          >
+            <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add User
+          </button>
+          <button
+            onClick={fetchUsers}
+            disabled={loading || refreshing}
+            className={`px-4 py-2 rounded-lg border transition-all duration-200 ${
+              loading || refreshing
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:shadow-lg'
+            } ${
+              isDarkMode
+                ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <svg className={`w-5 h-5 inline mr-2 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Error Display */}
@@ -240,6 +371,34 @@ const UsersPage = ({ isDarkMode }) => {
         onDismiss={() => setError(null)}
         isDarkMode={isDarkMode}
       />
+
+      {/* Success Display */}
+      {success && (
+        <div className={`mb-6 p-4 rounded-lg border ${
+          isDarkMode 
+            ? 'bg-green-900 bg-opacity-50 border-green-700 text-green-200' 
+            : 'bg-green-100 border-green-400 text-green-700'
+        }`}>
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            {success}
+            <button
+              onClick={() => setSuccess(null)}
+              className={`ml-auto ${
+                isDarkMode 
+                  ? 'text-green-200 hover:text-green-100' 
+                  : 'text-green-700 hover:text-green-900'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* KPIs Section */}
       {users.length > 0 && (
@@ -594,6 +753,193 @@ const UsersPage = ({ isDarkMode }) => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Add New User</h2>
+              <button
+                onClick={handleCloseAddUserModal}
+                disabled={submitting}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'hover:bg-gray-700 text-gray-300'
+                    : 'hover:bg-gray-100 text-gray-600'
+                } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Error Display */}
+            {submitError && (
+              <div className={`mb-4 p-4 rounded-lg ${
+                isDarkMode 
+                  ? 'bg-red-900 bg-opacity-50 border border-red-700 text-red-200' 
+                  : 'bg-red-50 border border-red-200 text-red-800'
+              }`}>
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {submitError}
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleAddUserSubmit}>
+              <div className="space-y-4">
+                {/* Username */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    disabled={submitting}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    placeholder="Enter username"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={submitting}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    disabled={submitting}
+                    minLength={6}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    placeholder="Enter password (min. 6 characters)"
+                  />
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Password must be at least 6 characters long
+                  </p>
+                </div>
+
+                {/* Role */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Role *
+                  </label>
+                  <select
+                    required
+                    value={formData.roleName}
+                    onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+                    disabled={submitting || loadingRoles}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pharma-teal ${
+                      isDarkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } ${submitting || loadingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="">Select a role</option>
+                    {availableRoles.map(role => (
+                      <option key={role.id || role.name} value={role.name}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingRoles && (
+                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Loading roles...
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={handleCloseAddUserModal}
+                  disabled={submitting}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isDarkMode
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-lg ${
+                    submitting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {submitting ? (
+                    <>
+                      <svg className="w-4 h-4 inline mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                      </svg>
+                      Create User
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

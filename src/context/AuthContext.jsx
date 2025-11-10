@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { API_BASE_URL } from '../utils/config'
 import { parseJwt } from '../utils/jwt'
 import apiService from '../services/api'
@@ -8,6 +9,8 @@ const AuthContext = createContext()
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
+    console.error('🚨 useAuth called outside AuthProvider!')
+    console.error('🚨 Current component tree:', document.querySelector('#root')?.innerHTML?.substring(0, 200))
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
@@ -23,6 +26,20 @@ export const AuthProvider = ({ children }) => {
   const tokenCheckInterval = useRef(null)
   const warningTimeout = useRef(null)
   const isRefreshing = useRef(false)
+
+  // Debug logging for AuthProvider initialization
+  console.log('🔄 AuthProvider initializing...', { 
+    hasChildren: !!children,
+    childrenType: typeof children
+  })
+
+  // Prevent AuthProvider from unmounting unexpectedly
+  useEffect(() => {
+    console.log('🔄 AuthProvider mounted')
+    return () => {
+      console.log('🚨 AuthProvider unmounting - this should not happen!')
+    }
+  }, [])
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -91,7 +108,11 @@ export const AuthProvider = ({ children }) => {
 
   // Handle auto logout
   const handleAutoLogout = useCallback((message) => {
-    console.log('Handling auto logout:', message)
+    console.log('🚨 AUTO LOGOUT TRIGGERED:', message)
+    console.log('🚨 Current user before logout:', user)
+    console.log('🚨 Current access token before logout:', accessToken ? `${accessToken.substring(0, 20)}...` : 'NONE')
+    console.log('🚨 Stack trace:', new Error().stack)
+    
     stopTokenExpiryChecking()
     
     // Clear state and localStorage
@@ -106,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('pharma_user')
     
     // Silent logout - no alert box
-  }, [stopTokenExpiryChecking])
+  }, [stopTokenExpiryChecking, user, accessToken])
 
   // Check if access token is expired using stored expiry time
   const isAccessTokenExpired = useCallback(() => {
@@ -122,13 +143,13 @@ export const AuthProvider = ({ children }) => {
     return Math.max(0, tokenExpiry - currentTime)
   }, [accessToken, tokenExpiry])
 
-  // Check if access token is expiring soon
-  const isAccessTokenExpiringSoon = useCallback((minutesThreshold = 5) => {
-    const timeUntilExpiry = getAccessTokenTimeUntilExpiry()
-    return timeUntilExpiry > 0 && timeUntilExpiry <= (minutesThreshold * 60)
-  }, [getAccessTokenTimeUntilExpiry])
+  // Check if access token is expiring soon (currently unused but kept for future use)
+  // const isAccessTokenExpiringSoon = useCallback((minutesThreshold = 5) => {
+  //   const timeUntilExpiry = getAccessTokenTimeUntilExpiry()
+  //   return timeUntilExpiry > 0 && timeUntilExpiry <= (minutesThreshold * 60)
+  // }, [getAccessTokenTimeUntilExpiry])
 
-  // Handle token refresh
+  // Handle token refresh - aligned with backend TokenRefreshResponse
   const handleTokenRefresh = useCallback(async () => {
     // Prevent multiple simultaneous refresh attempts
     if (isRefreshing.current) {
@@ -155,27 +176,15 @@ export const AuthProvider = ({ children }) => {
       console.log('🔄 Attempting to refresh access token...')
       console.log('🔄 Current refresh token:', refreshToken ? `${refreshToken.substring(0, 20)}...` : 'NONE')
       
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ Token refresh failed with response:', response.status, errorText)
-        throw new Error('Token refresh failed')
-      }
-
-      const tokenResponse = await response.json()
+      // Use the centralized API service for refresh
+      const tokenResponse = await apiService.auth.refresh(refreshToken)
       console.log('✅ Token refresh successful:', tokenResponse)
 
-      // Update tokens and expiry
+      // Extract tokens from TokenRefreshResponse format
       const newAccessToken = tokenResponse.accessToken
-      const newRefreshToken = tokenResponse.refreshToken || refreshToken // Keep existing refresh token if not provided
-      const newExpiry = Math.floor(Date.now() / 1000) + (tokenResponse.expiresIn || 900) // Default 15 minutes
+      const newRefreshToken = tokenResponse.refreshToken // Backend provides new refresh token (token rotation)
+      const expiresIn = tokenResponse.expiresIn || 900 // Default 15 minutes
+      const newExpiry = Math.floor(Date.now() / 1000) + expiresIn
       
       // Validate new token
       if (!newAccessToken) {
@@ -186,7 +195,7 @@ export const AuthProvider = ({ children }) => {
         newAccessToken: newAccessToken ? `${newAccessToken.substring(0, 20)}...` : 'NONE',
         newRefreshToken: newRefreshToken ? `${newRefreshToken.substring(0, 20)}...` : 'NONE',
         newExpiry,
-        expiresInSeconds: tokenResponse.expiresIn,
+        expiresInSeconds: expiresIn,
         currentTime: Math.floor(Date.now() / 1000)
       })
 
@@ -204,32 +213,56 @@ export const AuthProvider = ({ children }) => {
       console.log('✅ New access token in localStorage:', localStorage.getItem('pharma_access_token') ? 'EXISTS' : 'NOT FOUND')
     } catch (error) {
       console.error('❌ Token refresh failed:', error)
-      handleAutoLogout('Session expired. Please log in again.')
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : 'NONE'
+      })
+      
+      // Handle specific refresh token errors from backend
+      if (error.message.includes('Refresh token was expired') || 
+          error.message.includes('Refresh token is not in database') ||
+          error.message.includes('Token is not a refresh token') ||
+          error.message.includes('Invalid refresh token')) {
+        console.warn('❌ Refresh token is invalid/expired, logging out')
+        handleAutoLogout('Session expired. Please log in again.')
+      } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+        console.warn('❌ Network error during refresh, keeping user logged in')
+        // Don't logout on network errors, just log the error
+      } else {
+        console.warn('❌ Unknown refresh error, logging out')
+        handleAutoLogout('Session expired. Please log in again.')
+      }
     } finally {
       isRefreshing.current = false
     }
   }, [refreshToken, handleAutoLogout])
 
-  // Start checking token expiry every 30 seconds
+  // Start checking token expiry every 5 seconds for short-lived tokens
   const startTokenExpiryChecking = useCallback(() => {
     stopTokenExpiryChecking() // Clear any existing interval
     
+    console.log('🔄 Starting token expiry checking interval...')
+    
     tokenCheckInterval.current = setInterval(() => {
-      if (!accessToken) return
+      if (!accessToken) {
+        console.log('🔄 No access token, skipping expiry check')
+        return
+      }
+      
+      const timeLeft = getAccessTokenTimeUntilExpiry()
+      console.log(`🔄 Token expiry check - ${timeLeft} seconds remaining`)
       
       // Check if token is expired
       if (isAccessTokenExpired()) {
-        console.warn('Access token has expired, attempting refresh...')
+        console.warn('⚠️ Access token has expired, attempting refresh...')
         handleTokenRefresh()
         return
       }
       
-      // Check if token is expiring soon (within 10 seconds for short-lived tokens) and refresh proactively
-      const timeLeft = getAccessTokenTimeUntilExpiry()
-      if (timeLeft > 0 && timeLeft <= 10) {
-        const secondsLeft = timeLeft
-        
-        console.log(`Access token expires in ${secondsLeft} seconds, refreshing proactively...`)
+      // Proactively refresh 30 seconds before expiry
+      if (timeLeft > 0 && timeLeft <= 30) {
+        console.log(`⚠️ Access token expires in ${timeLeft} seconds, refreshing proactively (30s window)...`)
         handleTokenRefresh()
         return
       }
@@ -238,29 +271,42 @@ export const AuthProvider = ({ children }) => {
 
   // Auto logout functionality
   useEffect(() => {
+    console.log('🔄 Setting up API service callbacks...')
+    
     // Set up API service callbacks
     apiService.setLogoutCallback((message) => {
       console.warn('Auto logout triggered:', message)
       handleAutoLogout(message)
     })
 
-    apiService.setRefreshTokenCallback(() => {
+    apiService.setRefreshTokenCallback(async () => {
       console.log('API service requesting token refresh')
-      return handleTokenRefresh()
+      try {
+        await handleTokenRefresh()
+        console.log('✅ Token refresh completed for API service')
+      } catch (error) {
+        console.error('❌ Token refresh failed for API service:', error)
+        throw error
+      }
     })
+    
+    console.log('✅ API service callbacks set up successfully')
 
     // Start token expiry checking if user is authenticated
     if (accessToken && user) {
+      console.log('🔄 Starting token expiry checking...')
       startTokenExpiryChecking()
     } else {
+      console.log('🔄 Stopping token expiry checking - no auth')
       stopTokenExpiryChecking()
     }
 
     // Cleanup on unmount
     return () => {
+      console.log('🔄 Cleaning up token expiry checking')
       stopTokenExpiryChecking()
     }
-  }, [accessToken, user, handleAutoLogout, startTokenExpiryChecking, stopTokenExpiryChecking, handleTokenRefresh])
+  }, [accessToken, user, handleAutoLogout, handleTokenRefresh, startTokenExpiryChecking, stopTokenExpiryChecking])
 
   // Login function
   const login = async (email, password) => {
@@ -269,51 +315,9 @@ export const AuthProvider = ({ children }) => {
       console.log('🚀 AuthContext login attempt for:', email)
       console.log('🌐 API_BASE_URL:', API_BASE_URL)
       
-      // API call to Spring Boot backend
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: email, password }),
-      })
-
-      console.log('📡 Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      })
-
-      if (!response.ok) {
-        let errorMessage = 'Login failed'
-        try {
-          const errorData = await response.json()
-          console.log('📄 Error response data:', errorData)
-          
-          // Use the actual error message from the server
-          errorMessage = errorData.message || errorData.error || 'Login failed'
-        } catch {
-          // If we can't parse the error response, use status-based messages
-          if (response.status === 401) {
-            errorMessage = 'Invalid username or password'
-          } else if (response.status === 403) {
-            errorMessage = 'Access denied'
-          } else if (response.status >= 500) {
-            errorMessage = 'SERVER_ERROR: Server is temporarily unavailable. Please try again later.'
-          } else if (response.status === 0) {
-            errorMessage = 'NETWORK_ERROR: Unable to connect to the server. Please check if the backend is running.'
-          } else {
-            errorMessage = `Login failed (${response.status})`
-          }
-        }
-        console.log('❌ Login failed with error:', errorMessage)
-        return { success: false, error: errorMessage }
-      }
-
-      const authResponse = await response.json()
+      // Use centralized API service for login
+      const authResponse = await apiService.auth.login({ username: email, password })
       console.log('=== LOGIN RESPONSE DEBUG ===')
-      console.log('Raw response status:', response.status)
-      console.log('Raw response headers:', Object.fromEntries(response.headers))
       console.log('Full login response:', authResponse)
       console.log('Response type:', typeof authResponse)
       console.log('Response keys:', Object.keys(authResponse))
@@ -354,6 +358,9 @@ export const AuthProvider = ({ children }) => {
         console.log('Final userData object:', userData)
         console.log('userData.role:', userData.role)
         console.log('userData.roleName:', userData.roleName)
+        console.log('userData.role type:', typeof userData.role)
+        console.log('userData.role.name:', userData.role?.name)
+        console.log('Extracted role for roleUtils:', typeof userData.role === 'string' ? userData.role : userData.role?.name || userData.roleName)
       } else {
         // Fallback: Try to decode JWT token to get user information
         const decodedToken = parseJwt(accessToken)
@@ -484,13 +491,7 @@ export const AuthProvider = ({ children }) => {
       
       // Optional: Call logout endpoint to invalidate token on server
       if (accessToken) {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }).catch(() => {
+        await apiService.auth.logout().catch(() => {
           // Ignore errors on logout API call
         })
       }
@@ -522,24 +523,35 @@ export const AuthProvider = ({ children }) => {
 
   // Helper function to make authenticated API requests
   const apiRequest = async (url, options = {}) => {
-    const headers = {
+    const buildHeaders = () => ({
       ...getAuthHeaders(),
       ...options.headers,
-    }
+    })
 
     // Add base URL if the URL is relative
     const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`
 
-    const response = await fetch(fullUrl, {
-      ...options,
-      headers,
-    })
+    const makeRequest = () => fetch(fullUrl, { ...options, headers: buildHeaders() })
 
-    // Handle token expiration
+    let response = await makeRequest()
+
     if (response.status === 401) {
-      // Token expired or invalid
-      logout()
-      throw new Error('Session expired. Please log in again.')
+      console.warn('⚠️ 401 Unauthorized received. Attempting token refresh...')
+      try {
+        await handleTokenRefresh()
+      } catch {
+        console.warn('❌ Refresh failed during 401 handling. Logging out...')
+        await logout()
+        throw new Error('Session expired. Please log in again.')
+      }
+
+      // Retry once with updated token
+      response = await makeRequest()
+      if (response.status === 401) {
+        console.warn('❌ Retry after refresh still returned 401. Logging out...')
+        await logout()
+        throw new Error('Session expired. Please log in again.')
+      }
     }
 
     return response
@@ -549,24 +561,33 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async () => {
     if (!accessToken) return null
     
-    const response = await apiRequest(`${API_BASE_URL}/v1/users/me`)
-    if (response.ok) {
-      const userProfile = await response.json()
-      console.log('Fetched user profile:', userProfile)
-      
-      // Update user state with complete profile
-      const completeUserData = {
-        ...user,
-        ...userProfile,
-        role: userProfile.role || user.role // Ensure role is properly set
+    try {
+      const response = await apiRequest(`${API_BASE_URL}/v1/users/me`)
+      if (response.ok) {
+        const userProfile = await response.json()
+        console.log('Fetched user profile:', userProfile)
+        
+        // Update user state with complete profile
+        const completeUserData = {
+          ...user,
+          ...userProfile,
+          role: userProfile.role || user.role // Ensure role is properly set
+        }
+        
+        setUser(completeUserData)
+        localStorage.setItem('pharma_user', JSON.stringify(completeUserData))
+        
+        return completeUserData
+      } else {
+        console.warn('Profile fetch failed with status:', response.status)
+        // Don't logout on profile fetch failure - user might not have permission
+        return user
       }
-      
-      setUser(completeUserData)
-      localStorage.setItem('pharma_user', JSON.stringify(completeUserData))
-      
-      return completeUserData
+    } catch (error) {
+      console.warn('Profile fetch error:', error.message)
+      // Don't logout on profile fetch error - user might not have permission
+      return user
     }
-    return user
   }
 
   // Check if user is authenticated
@@ -577,7 +598,9 @@ export const AuthProvider = ({ children }) => {
       user: !!user, 
       authenticated,
       accessTokenValue: accessToken ? `${accessToken.substring(0, 10)}...` : null,
-      userValue: user ? { id: user.id, username: user.username } : null
+      userValue: user ? { id: user.id, username: user.username, role: user.role } : null,
+      userRoleType: user?.role ? typeof user.role : 'no role',
+      userRoleName: user?.role?.name || user?.roleName || 'no role name'
     })
     return authenticated
   }
@@ -585,7 +608,10 @@ export const AuthProvider = ({ children }) => {
   // Check if user has specific role
   const hasRole = (requiredRole) => {
     if (!user || !user.role) return false
-    return user.role === requiredRole || user.role === 'ADMIN'
+    
+    // Handle both role objects and role strings
+    const userRole = typeof user.role === 'string' ? user.role : user.role?.name || user.roleName
+    return userRole === requiredRole || userRole === 'ADMIN'
   }
 
   // Refresh token function (now using the new handleTokenRefresh)
@@ -612,6 +638,15 @@ export const AuthProvider = ({ children }) => {
     handleTokenRefresh,
     dismissExpiryWarning: () => setShowExpiryWarning(false),
   }
+
+  console.log('🔄 AuthProvider rendering with value:', { 
+    hasUser: !!user, 
+    hasAccessToken: !!accessToken, 
+    loading,
+    isAuthenticated: !!(accessToken && user),
+    childrenType: typeof children,
+    childrenCount: React.Children.count(children)
+  })
 
   return (
     <AuthContext.Provider value={value}>
