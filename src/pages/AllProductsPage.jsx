@@ -51,7 +51,14 @@ const AllProductsPage = ({ isDarkMode }) => {
       setRefreshing(true)
       setLoadingError(null)
       const data = await productsApi.getAll()
-      setProducts(Array.isArray(data) ? data : [])
+      // Normalize products: map productId to id for consistency
+      const normalizedProducts = Array.isArray(data) 
+        ? data.map(product => ({
+            ...product,
+            id: product.productId || product.id // Use productId from backend, fallback to id if present
+          }))
+        : []
+      setProducts(normalizedProducts)
     } catch (error) {
       console.error('Failed to fetch products:', error)
       setLoadingError(error)
@@ -126,7 +133,17 @@ const AllProductsPage = ({ isDarkMode }) => {
       }
       
       if (editingProduct) {
-        await productsApi.update(editingProduct.id, dto)
+        // Validate that editingProduct has a valid ID
+        const productId = editingProduct.id
+        if (!productId && productId !== 0) {
+          throw new Error('Product ID is missing. Cannot update product.')
+        }
+        // Ensure ID is a number (convert if string)
+        const numericId = typeof productId === 'string' ? parseInt(productId, 10) : productId
+        if (isNaN(numericId)) {
+          throw new Error(`Invalid product ID: ${productId}. Cannot update product.`)
+        }
+        await productsApi.update(numericId, dto)
         setSuccess('Product updated successfully!')
       } else {
         await productsApi.create(dto)
@@ -201,6 +218,13 @@ const AllProductsPage = ({ isDarkMode }) => {
   }
 
   const handleEdit = (product) => {
+    // Validate that product has a valid ID
+    if (!product || (!product.id && product.id !== 0)) {
+      console.error('Cannot edit product: Product ID is missing', product)
+      setError('Cannot edit product: Product ID is missing')
+      return
+    }
+    
     setEditingProduct(product)
     setFormData({
       name: product.name || '',
