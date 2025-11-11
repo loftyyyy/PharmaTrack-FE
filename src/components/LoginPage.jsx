@@ -486,7 +486,9 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
                     className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
                       isForgotSubmitting
                         ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-pharma-teal to-pharma-medium text-white hover:from-pharma-medium hover:to-pharma-teal hover:shadow-lg'
+                        : isDarkMode
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
                     }`}
                   >
                     {isForgotSubmitting ? 'Sending Reset Link...' : 'Send Reset Link'}
