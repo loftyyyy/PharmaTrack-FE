@@ -380,7 +380,11 @@ const LoginPage = ({ isDarkMode, isSystemTheme, toggleDarkMode }) => {
             <button
               type="button"
               onClick={handleForgotPasswordClick}
-              className="text-sm font-medium text-pharma-teal hover:text-pharma-medium transition-colors duration-200"
+              className={`text-sm font-medium transition-colors duration-200 ${
+                isDarkMode
+                  ? 'text-white/90 hover:text-white cursor-pointer'
+                  : 'text-pharma-teal hover:text-pharma-medium cursor-pointer'
+              }`}
             >
               Forgot Password?
             </button>
