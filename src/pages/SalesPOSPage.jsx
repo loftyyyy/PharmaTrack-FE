@@ -185,11 +185,20 @@ const SalesPOSPage = ({ isDarkMode }) => {
     }
   }
 
-  const getCartTotal = () => {
+  const getCartSubtotal = () => {
     return cart.reduce((total, item) => {
       const price = item.sellingPricePerUnit || 0
       return total + (price * item.cartQuantity)
     }, 0)
+  }
+
+  const getCartTax = () => {
+    const subtotal = getCartSubtotal()
+    return subtotal * 0.12 // 12% tax
+  }
+
+  const getCartTotal = () => {
+    return getCartSubtotal() + getCartTax()
   }
 
   const getCartItemCount = () => {
@@ -292,7 +301,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
       return
     }
 
-    const total = getCartTotal()
+    const total = getCartTotal() // Total includes 12% tax
     
     if (paymentMethod === 'CASH') {
       const received = parseFloat(amountReceived) || 0
@@ -408,7 +417,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
   })
 
   const getChange = () => {
-    const total = getCartTotal()
+    const total = getCartTotal() // Total includes tax
     const received = parseFloat(amountReceived) || 0
     return Math.max(0, received - total)
   }
@@ -416,9 +425,9 @@ const SalesPOSPage = ({ isDarkMode }) => {
   const quickAmounts = [50, 100, 200, 500, 1000]
 
   return (
-    <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-[#fafafa] text-gray-900'}`}>
+    <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-[#fafafa] text-gray-900'}`}>
       {/* Minimal Top Bar */}
-      <div className={`border-b ${isDarkMode ? 'bg-[#111111] border-gray-800/50' : 'bg-white border-gray-100'} backdrop-blur-xl`}>
+      <div className={`border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} backdrop-blur-xl`}>
         <div className="px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-8 text-xs font-medium">
             <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>
@@ -469,7 +478,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={`w-full px-5 py-4 pl-14 text-base rounded-2xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pharma-teal/50 ${
                   isDarkMode
-                    ? 'bg-gray-900/50 border-gray-800 text-white placeholder-gray-500 focus:border-pharma-teal/50'
+                    ? 'bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-pharma-teal/50'
                     : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-pharma-teal/50 shadow-sm'
                 }`}
               />
@@ -488,7 +497,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                     selectedCategory === category
                       ? 'bg-pharma-teal text-white shadow-lg shadow-pharma-teal/20'
                       : isDarkMode
-                        ? 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50 hover:text-gray-300 border border-gray-800'
+                        ? 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50 hover:text-gray-300 border border-gray-700'
                         : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-gray-200 shadow-sm'
                   }`}
                 >
@@ -531,7 +540,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                           : 'hover:shadow-xl hover:shadow-pharma-teal/5 hover:-translate-y-1 active:translate-y-0'
                       } ${
                         isDarkMode 
-                          ? 'bg-gray-900/50 border border-gray-800 hover:border-pharma-teal/30' 
+                          ? 'bg-gray-900/50 border border-gray-700 hover:border-pharma-teal/30' 
                           : 'bg-white border border-gray-200 hover:border-pharma-teal/30 shadow-sm'
                       }`}
                     >
@@ -564,16 +573,16 @@ const SalesPOSPage = ({ isDarkMode }) => {
         </div>
 
         {/* Right Side - Cart (Fixed) */}
-        <div className={`w-[420px] flex flex-col border-l ${isDarkMode ? 'bg-[#111111] border-gray-800/50' : 'bg-white border-gray-100'} shadow-xl`}>
+        <div className={`w-[420px] flex flex-col border-l ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} shadow-xl`}>
           {/* Customer Info */}
-          <div className={`p-6 border-b ${isDarkMode ? 'border-gray-800/50' : 'border-gray-100'}`}>
+          <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
             <button
               onClick={() => setShowCustomerModal(true)}
               className={`w-full p-4 rounded-2xl text-left transition-all duration-200 ${
                 selectedCustomer
                   ? 'bg-pharma-teal/10 border-2 border-pharma-teal/30'
                   : isDarkMode
-                    ? 'bg-gray-900/50 border-2 border-gray-800 hover:border-gray-700'
+                    ? 'bg-gray-900/50 border-2 border-gray-700 hover:border-gray-600'
                     : 'bg-gray-50 border-2 border-gray-200 hover:border-gray-300'
               }`}
             >
@@ -621,7 +630,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
             ) : (
               cart.map((item) => (
                 <div key={item.productBatchId} className={`rounded-2xl p-4 transition-all duration-200 ${
-                  isDarkMode ? 'bg-gray-900/50 border border-gray-800' : 'bg-gray-50 border border-gray-200'
+                  isDarkMode ? 'bg-gray-900/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'
                 }`}>
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 mr-3">
@@ -721,15 +730,23 @@ const SalesPOSPage = ({ isDarkMode }) => {
           </div>
 
           {/* Cart Summary and Actions - Fixed at Bottom */}
-          <div className={`p-6 border-t space-y-4 ${isDarkMode ? 'border-gray-800/50 bg-[#111111]' : 'border-gray-100 bg-white'}`}>
+          <div className={`p-6 border-t space-y-4 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'}`}>
             {/* Summary */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-medium">
-                <span className={isDarkMode ? 'text-gray-500' : 'text-gray-500'}>Items</span>
-                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>{getCartItemCount()}</span>
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Items</span>
+                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>{getCartItemCount()}</span>
               </div>
-              <div className={`flex justify-between items-baseline pt-2 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-                <span className={`text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Total</span>
+              <div className="flex justify-between text-xs font-medium">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Subtotal</span>
+                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>₱{Number(getCartSubtotal()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-xs font-medium">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Tax (12%)</span>
+                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>₱{Number(getCartTax()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className={`flex justify-between items-baseline pt-2 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                <span className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Total</span>
                 <span className="text-2xl font-bold text-pharma-teal">
                   ₱{Number(getCartTotal()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 </span>
@@ -743,7 +760,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                   onClick={parkTransaction}
                   className={`py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
                     isDarkMode
-                      ? 'bg-gray-900/50 text-gray-300 hover:bg-gray-800 border border-gray-800'
+                      ? 'bg-gray-900/50 text-gray-300 hover:bg-gray-800 border border-gray-700'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                   }`}
                 >
@@ -780,7 +797,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
           setCustomerSearchTerm('')
         }}>
           <div onClick={(e) => e.stopPropagation()} className={`rounded-3xl p-8 w-full max-w-lg mx-4 shadow-2xl max-h-[85vh] flex flex-col ${
-            isDarkMode ? 'bg-[#111111] border border-gray-800/50' : 'bg-white border border-gray-100'
+            isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'
           }`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Select Customer</h2>
@@ -805,7 +822,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                   onChange={(e) => setCustomerSearchTerm(e.target.value)}
                   className={`w-full px-5 py-3 pl-12 rounded-2xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pharma-teal/50 ${
                     isDarkMode
-                      ? 'bg-gray-900/50 border-gray-800 text-white placeholder-gray-500 focus:border-pharma-teal/50'
+                      ? 'bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-pharma-teal/50'
                       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-pharma-teal/50'
                   }`}
                 />
@@ -828,7 +845,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                   !selectedCustomer 
                     ? 'bg-pharma-teal/10 border-2 border-pharma-teal/30'
                     : isDarkMode
-                      ? 'bg-gray-900/50 border border-gray-800 hover:bg-gray-800/50'
+                      ? 'bg-gray-900/50 border border-gray-700 hover:bg-gray-800/50'
                       : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
                 }`}
               >
@@ -878,7 +895,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                       selectedCustomer?.customerId === customer.customerId
                         ? 'bg-pharma-teal/10 border-2 border-pharma-teal/30'
                         : isDarkMode
-                          ? 'bg-gray-900/50 border border-gray-800 hover:bg-gray-800/50'
+                          ? 'bg-gray-900/50 border border-gray-700 hover:bg-gray-800/50'
                           : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
@@ -903,7 +920,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`rounded-3xl p-8 w-full max-w-2xl mx-4 shadow-2xl ${
-            isDarkMode ? 'bg-[#111111] border border-gray-800/50' : 'bg-white border border-gray-100'
+            isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'
           }`}>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold">Process Payment</h2>
@@ -956,7 +973,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                       paymentMethod === method
                         ? 'border-pharma-teal bg-pharma-teal text-white shadow-lg shadow-pharma-teal/20'
                         : isDarkMode
-                          ? 'border-gray-800 bg-gray-900/50 hover:bg-gray-800/50 text-gray-300'
+                          ? 'border-gray-700 bg-gray-900/50 hover:bg-gray-800/50 text-gray-300'
                           : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
                     }`}
                   >
@@ -996,7 +1013,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                     placeholder="0.00"
                     className={`w-full px-6 py-5 text-3xl font-bold text-center rounded-2xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-pharma-teal/50 ${
                       isDarkMode
-                        ? 'bg-gray-900/50 border-gray-800 text-white placeholder-gray-600 focus:border-pharma-teal/50'
+                        ? 'bg-gray-900/50 border-gray-700 text-white placeholder-gray-600 focus:border-pharma-teal/50'
                         : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-pharma-teal/50'
                     }`}
                   />
@@ -1010,7 +1027,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                       onClick={() => setAmountReceived(amount.toString())}
                       className={`py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
                         isDarkMode
-                          ? 'bg-gray-900/50 hover:bg-gray-800/50 text-gray-300 border border-gray-800'
+                          ? 'bg-gray-900/50 hover:bg-gray-800/50 text-gray-300 border border-gray-700'
                           : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
                       }`}
                     >
@@ -1022,18 +1039,26 @@ const SalesPOSPage = ({ isDarkMode }) => {
             )}
 
             {/* Summary */}
-            <div className={`p-6 rounded-2xl mb-8 space-y-4 ${isDarkMode ? 'bg-gray-900/50 border border-gray-800' : 'bg-gray-50 border border-gray-200'}`}>
+            <div className={`p-6 rounded-2xl mb-8 space-y-4 ${isDarkMode ? 'bg-gray-900/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
               <div className="flex justify-between text-base font-medium">
                 <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Subtotal</span>
-                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-900'}>₱{Number(getCartTotal()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-900'}>₱{Number(getCartSubtotal()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-base font-medium">
+                <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Tax (12%)</span>
+                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-900'}>₱{Number(getCartTax()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className={`flex justify-between text-lg font-bold pt-2 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <span className={isDarkMode ? 'text-gray-200' : 'text-gray-900'}>Total</span>
+                <span className="text-pharma-teal">₱{Number(getCartTotal()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
               </div>
               {paymentMethod === 'CASH' && amountReceived && (
                 <>
-                  <div className={`flex justify-between text-base font-medium pt-3 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <div className={`flex justify-between text-base font-medium pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Amount Received</span>
                     <span className={isDarkMode ? 'text-gray-200' : 'text-gray-900'}>₱{Number(amountReceived || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className={`flex justify-between text-2xl font-bold text-pharma-teal pt-3 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <div className={`flex justify-between text-2xl font-bold text-pharma-teal pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                     <span>Change</span>
                     <span>₱{Number(getChange()).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
                   </div>
@@ -1048,7 +1073,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
                 disabled={processingPayment}
                 className={`py-4 px-6 rounded-2xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isDarkMode
-                    ? 'bg-gray-900/50 text-gray-300 hover:bg-gray-800/50 border border-gray-800'
+                    ? 'bg-gray-900/50 text-gray-300 hover:bg-gray-800/50 border border-gray-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                 }`}
               >
@@ -1082,7 +1107,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
       {showParkedModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowParkedModal(false)}>
           <div onClick={(e) => e.stopPropagation()} className={`rounded-3xl p-8 w-full max-w-2xl mx-4 shadow-2xl max-h-[85vh] overflow-y-auto ${
-            isDarkMode ? 'bg-[#111111] border border-gray-800/50' : 'bg-white border border-gray-100'
+            isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'
           }`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Parked Transactions</h2>
@@ -1110,7 +1135,7 @@ const SalesPOSPage = ({ isDarkMode }) => {
               <div className="space-y-3">
                 {parkedTransactions.map((transaction) => (
                   <div key={transaction.id} className={`p-5 rounded-2xl border transition-all duration-200 ${
-                    isDarkMode ? 'border-gray-800 bg-gray-900/50 hover:bg-gray-800/50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                    isDarkMode ? 'border-gray-700 bg-gray-900/50 hover:bg-gray-800/50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                   }`}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
